@@ -10,6 +10,8 @@ import { ensureReferralCode } from '@/lib/referral-codes'
 import { getCurrentUser } from '@/lib/session'
 import { ShareDialog } from '@/components/share-dialog'
 import { EventManageLinks } from '../_components/event-manage-links'
+import { PolarisPublic } from '@/app/(site)/polaris/_components/public-view'
+import { POLARIS_SLUG } from '@/app/(site)/polaris/_lib/rules'
 import { HackathonView } from '../_components/hackathon/hackathon-view'
 import { getMySubmissions, getPublicHackathon } from '../_lib/hackathons/queries'
 import { blocksPublish } from '../_lib/portal'
@@ -47,6 +49,7 @@ export default async function EventPage({ params }: Props) {
   )
   if (hackathon) {
     const mine = user && hackathon.joined ? await getMySubmissions(hackathon.id, user.id) : []
+    if (event.slug === POLARIS_SLUG) return <PolarisPublic event={event} h={hackathon} user={user} mine={mine} />
     return (
       <HackathonView event={event} h={hackathon} signedIn={!!user} mine={mine} share={share} manage={<EventManageLinks eventId={event.id} user={user} />} />
     )
