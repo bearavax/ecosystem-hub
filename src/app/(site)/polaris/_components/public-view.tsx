@@ -11,7 +11,6 @@ import { can } from '@/lib/permissions'
 import { getEventHackathonRoles, getMySubmissions, type PublicHackathon } from '@/app/(site)/events/_lib/hackathons/queries'
 import { advancedStageIds, canManageHackathon, pickOpenStage, stageState } from '@/app/(site)/events/_lib/hackathons/rules'
 import { STANDING_LABEL, standingsFor } from '../_lib/rules'
-import { SectionTabs } from './section-tabs'
 
 type Mine = Awaited<ReturnType<typeof getMySubmissions>>
 type EventBits = {
@@ -25,6 +24,19 @@ type EventBits = {
   city: string | null
   country: string | null
 }
+
+const NAV = [
+  ['schedule', 'Schedule'],
+  ['tracks', 'Tracks'],
+  ['prizes', 'Prizes'],
+  ['submit', 'Submit'],
+  ['criteria', 'Criteria'],
+  ['judges', 'Judges'],
+  ['sponsors', 'Sponsors'],
+  ['resources', 'Resources'],
+  ['rules', 'Rules'],
+  ['faq', 'FAQ'],
+] as const
 
 function primaryAction(event: EventBits, h: PublicHackathon, user: CurrentUser | null, mine: Mine, now: Date): { href?: string; label: string } {
   const open = h.stages[pickOpenStage(h.stages, now, advancedStageIds(mine))]
@@ -45,6 +57,15 @@ function initials(name: string) {
   return ((parts[0]?.[0] ?? '?') + (parts.length > 1 ? parts[1]![0] : '')).toUpperCase()
 }
 
+function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <section id={id} className="scroll-mt-32 border-t border-line py-14">
+      <h2 className="text-2xl text-fg-heading">{title}</h2>
+      <div className="mt-6">{children}</div>
+    </section>
+  )
+}
+
 export async function PolarisPublic({ event, h, user, mine }: { event: EventBits; h: PublicHackathon; user: CurrentUser | null; mine: Mine }) {
   const now = new Date()
   const action = primaryAction(event, h, user, mine, now)
@@ -61,153 +82,13 @@ export async function PolarisPublic({ event, h, user, mine }: { event: EventBits
     ...(h.showBuilderHubLinks ? BUILDER_HUB_LINKS.map((l) => ({ href: l.href, label: l.label, body: l.body })) : []),
   ]
   const listed = h.prizes.filter((p) => p.amount)
-
-  const tabs: { id: string; label: string; panel: ReactNode }[] = [
-    {
-      id: 'overview',
-      label: 'Overview',
-      panel: (
-        <div className="space-y-4">
-          <dl className="grid grid-cols-3 gap-3 text-sm">
-            <div><dt className="text-fg-muted">Team size</dt><dd className="text-fg-heading">{h.teamSizeMin}{h.teamSizeMax ? ` to ${h.teamSizeMax}` : '+'}</dd></div>
-            <div><dt className="text-fg-muted">Registered</dt><dd className="text-fg-heading">{h._count.participants}</dd></div>
-            <div><dt className="text-fg-muted">Submissions</dt><dd className="text-fg-heading">{h._count.submissions}</dd></div>
-          </dl>
-          <p className="text-sm text-fg-body">Register, then submit a Hub project. A new project is stored as a normal project.</p>
-          {h.aboutMd && (
-            <details className="text-sm">
-              <summary className="cursor-pointer text-fg-heading">About</summary>
-              <div className="mt-3 max-w-2xl"><Markdown>{h.aboutMd}</Markdown></div>
-            </details>
-          )}
-        </div>
-      ),
-    },
-    {
-      id: 'tracks',
-      label: 'Tracks',
-      panel: (
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {h.tracks.map((t) => (
-            <li key={t.id} className="rounded-xl border border-line p-4">
-              <p className="text-fg-heading">{t.name}</p>
-              <p className="mt-1 text-sm text-fg-muted">{t.sponsor ?? 'No sponsor'}</p>
-            </li>
-          ))}
-        </ul>
-      ),
-    },
-    {
-      id: 'prizes',
-      label: 'Prizes',
-      panel: (
-        <div className="space-y-3">
-          {h.prizePool && <p className="text-sm text-fg-muted">Prize pool: <span className="text-fg-heading">{h.prizePool}</span></p>}
-          <table className="w-full text-left text-sm">
-            <thead className="text-fg-muted"><tr><th className="py-1 font-medium">Prize</th><th className="py-1 font-medium">Track</th><th className="py-1 font-medium">Amount</th></tr></thead>
-            <tbody>
-              {listed.map((p) => (
-                <tr key={p.id} className="border-t border-line">
-                  <td className="py-2 text-fg-heading">{p.title}</td>
-                  <td className="py-2 text-fg-body">{p.trackId ? h.tracks.find((t) => t.id === p.trackId)?.name : 'Overall'}</td>
-                  <td className="py-2 text-fg-body">{p.amount}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {winners.length > 0 && (
-            <ul className="text-sm text-fg-body">
-              {winners.map((w) => <li key={w.title + w.name}>{w.title}: {w.name}</li>)}
-            </ul>
-          )}
-        </div>
-      ),
-    },
-    {
-      id: 'schedule',
-      label: 'Schedule',
-      panel: (
-        <div className="space-y-2">
-          {h.stages.map((s, i) => {
-            const state = stageState(s, now)
-            const total = s.criteria.reduce((sum, c) => sum + c.weight, 0) || 1
-            return (
-              <details key={s.id} open={state === 'open'} className="rounded-lg border border-line px-3 py-2">
-                <summary className="flex cursor-pointer flex-wrap items-center gap-2 text-sm">
-                  <span className="text-fg-heading">{s.name}</span>
-                  <span className="text-fg-muted">{formatShortDate(s.opensAt, h.timezone)} to {formatShortDate(s.closesAt, h.timezone)}</span>
-                  <StageStateBadge state={state} />
-                </summary>
-                <div className="mt-3">
-                  {i > 0 && <p className="mb-2 text-xs text-fg-muted">{s.advancedOnly ? 'Advanced teams only.' : 'Teams that were not advanced can still enter.'}</p>}
-                  {s.showCriteria && s.criteria.length > 0 && (
-                    <table className="w-full max-w-lg text-left text-sm">
-                      <thead className="text-fg-muted"><tr><th className="py-1 font-medium">Criterion</th><th className="py-1 font-medium">Weight</th><th className="py-1 text-right font-medium">Share</th></tr></thead>
-                      <tbody>
-                        {s.criteria.map((c) => (
-                          <tr key={c.id} className="border-t border-line">
-                            <td className="py-1.5 text-fg-heading">{c.name}{c.description && <span className="mt-0.5 block text-xs font-normal text-fg-muted">{c.description}</span>}</td>
-                            <td className="py-1.5 text-fg-body">{c.weight}</td>
-                            <td className="py-1.5 text-right text-fg-body">{Math.round((c.weight / total) * 100)}%</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </details>
-            )
-          })}
-        </div>
-      ),
-    },
-    {
-      id: 'judges',
-      label: 'Judges',
-      panel: h.judges.length === 0 ? <p className="text-sm text-fg-muted">No judges yet.</p> : (
-        <ul className="flex flex-wrap gap-4">
-          {h.judges.map((j) => {
-            const name = j.user?.name ?? 'Invited judge'
-            return (
-              <li key={j.id} className="flex w-28 flex-col items-center text-center">
-                <span className="grid size-10 place-items-center rounded-full border border-info/40 bg-surface-2 text-xs text-info" aria-hidden>{initials(name)}</span>
-                <span className="mt-2 text-sm text-fg-heading">{name}</span>
-              </li>
-            )
-          })}
-        </ul>
-      ),
-    },
-  ]
-  if (resources.length) {
-    tabs.push({
-      id: 'resources',
-      label: 'Resources',
-      panel: (
-        <ul className="grid gap-2 sm:grid-cols-2">
-          {resources.map((l) => (
-            <li key={l.href}>
-              <a href={l.href} target="_blank" rel="noreferrer" className="block rounded-lg border border-line px-3 py-2 hover:border-info/40">
-                <span className="text-sm text-fg-heading">{l.label}</span>
-                {l.body && <span className="mt-0.5 block text-xs text-fg-muted">{l.body}</span>}
-              </a>
-            </li>
-          ))}
-        </ul>
-      ),
-    })
-  }
-  if (h.rulesMd) {
-    tabs.push({
-      id: 'rules',
-      label: 'Rules',
-      panel: <div className="max-w-2xl text-sm"><Markdown>{h.rulesMd}</Markdown></div>,
-    })
-  }
+  const cta = action.href
+    ? <Button asChild size="lg"><Link href={action.href}>{action.label}</Link></Button>
+    : <p className="text-sm text-fg-body">{action.label}</p>
 
   return (
-    <div className="container-page py-6">
-      <header>
+    <div className="container-page pb-8">
+      <header className="py-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-3xl text-fg-heading sm:text-4xl">{event.name}</h1>
@@ -225,7 +106,7 @@ export async function PolarisPublic({ event, h, user, mine }: { event: EventBits
               </p>
             )}
           </div>
-          {action.href ? <Button asChild size="lg"><Link href={action.href}>{action.label}</Link></Button> : <p className="text-sm text-fg-body">{action.label}</p>}
+          {cta}
         </div>
         {user && mine.length > 0 && (
           <ul className="mt-3 space-y-1 text-sm text-fg-body">
@@ -247,7 +128,7 @@ export async function PolarisPublic({ event, h, user, mine }: { event: EventBits
             {judge && <Link href={`/judge/${h.id}`} className="text-fg-muted underline-offset-2 hover:text-fg-heading hover:underline">Judge</Link>}
           </p>
         )}
-        <div className="mt-5 grid gap-4 border-t border-info/30 pt-3 sm:grid-cols-[9rem_1fr_9rem]">
+        <div className="mt-6 grid gap-4 border-t border-info/30 pt-3 sm:grid-cols-[9rem_1fr_9rem]">
           <div>
             <p className="text-xs text-info">Tundra</p>
             <p className="mt-1 text-sm text-fg-heading">Register</p>
@@ -274,8 +155,181 @@ export async function PolarisPublic({ event, h, user, mine }: { event: EventBits
           </div>
         </div>
       </header>
-      <div className="mt-4">
-        <SectionTabs tabs={tabs} />
+
+      <nav aria-label="On this page" className="sticky top-16 z-30 -mx-4 border-y border-line bg-surface-0/95 px-4 backdrop-blur-md sm:-mx-6 sm:px-6">
+        <ul className="no-scrollbar flex gap-1 overflow-x-auto">
+          {NAV.map(([id, label]) => (
+            <li key={id}>
+              <a href={`#${id}`} className="inline-flex min-h-11 items-center px-3 text-sm whitespace-nowrap text-fg-muted hover:text-fg-heading">{label}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <Section id="schedule" title="Schedule">
+        <div className="grid gap-8 lg:grid-cols-[12rem_1fr_12rem]">
+          <div>
+            <p className="text-xs text-info">Tundra</p>
+            <p className="mt-2 text-fg-heading">Registration</p>
+            <p className="mt-1 text-sm text-fg-muted">{h.registrationOpensAt && h.registrationClosesAt ? formatEventRange(h.registrationOpensAt, h.registrationClosesAt, h.timezone) : 'Open'}</p>
+            <p className="mt-2 text-sm text-fg-body">Teams of {h.teamSizeMin}{h.teamSizeMax ? ` to ${h.teamSizeMax}` : ' or more'}.</p>
+          </div>
+          <div>
+            <p className="text-xs text-info">Mountains</p>
+            <ol className="mt-3 grid gap-3">
+              {h.stages.map((s, i) => (
+                <li key={s.id} className="rounded-xl border border-line p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-fg-heading">{i + 1}. {s.name}</h3>
+                    <StageStateBadge state={stageState(s, now)} />
+                  </div>
+                  <p className="mt-2 text-sm text-fg-muted">{formatEventRange(s.opensAt, s.closesAt, h.timezone)}</p>
+                  {i > 0 && <p className="mt-2 text-sm text-fg-body">{s.advancedOnly ? 'Advanced teams only.' : 'Open to teams that were not advanced.'}</p>}
+                </li>
+              ))}
+            </ol>
+          </div>
+          <div>
+            <p className="text-xs text-info">Stars</p>
+            <p className="mt-2 text-fg-heading">{winners.length ? 'Published' : 'Not published'}</p>
+            <ul className="mt-2 space-y-1 text-sm text-fg-body">
+              {winners.length === 0 && <li>Winners show here after results are published.</li>}
+              {winners.map((w) => <li key={w.title + w.name}>{w.name}</li>)}
+            </ul>
+          </div>
+        </div>
+      </Section>
+
+      <Section id="tracks" title="Tracks">
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {h.tracks.map((t) => (
+            <li key={t.id} className="rounded-xl border border-line p-5">
+              <h3 className="text-lg text-fg-heading">{t.name}</h3>
+              <p className="mt-2 text-sm text-fg-muted">{t.sponsor ?? 'No sponsor yet'}</p>
+            </li>
+          ))}
+        </ul>
+      </Section>
+
+      <Section id="prizes" title="Prizes">
+        {h.prizePool && <p className="mb-4 text-sm text-fg-muted">Prize pool <span className="text-fg-heading">{h.prizePool}</span></p>}
+        <ul className="grid gap-4 sm:grid-cols-2">
+          {listed.map((p) => (
+            <li key={p.id} className="rounded-xl border border-line p-5">
+              <p className="text-2xl text-fg-heading">{p.amount}</p>
+              <h3 className="mt-2 text-fg-heading">{p.title}</h3>
+              <p className="mt-1 text-sm text-fg-muted">{p.trackId ? h.tracks.find((t) => t.id === p.trackId)?.name : 'Overall'}</p>
+            </li>
+          ))}
+        </ul>
+        {winners.length > 0 && (
+          <ul className="mt-6 space-y-1 text-sm text-fg-body">
+            {winners.map((w) => <li key={w.title + w.name}>{w.title}: {w.name}</li>)}
+          </ul>
+        )}
+      </Section>
+
+      <Section id="submit" title="How to submit">
+        <ol className="grid gap-4 md:grid-cols-3">
+          <li className="rounded-xl border border-line p-5">
+            <p className="text-xs text-fg-muted">1</p>
+            <h3 className="mt-2 text-fg-heading">Register</h3>
+            <p className="mt-2 text-sm text-fg-body">Your profile needs a name, a country, and a role. {h._count.participants} people are registered.</p>
+          </li>
+          <li className="rounded-xl border border-line p-5">
+            <p className="text-xs text-fg-muted">2</p>
+            <h3 className="mt-2 text-fg-heading">Form the team</h3>
+            <p className="mt-2 text-sm text-fg-body">The team is the Hub project. Owner and writers count. Everyone on the team must be registered.</p>
+          </li>
+          <li className="rounded-xl border border-line p-5">
+            <p className="text-xs text-fg-muted">3</p>
+            <h3 className="mt-2 text-fg-heading">Submit the project</h3>
+            <p className="mt-2 text-sm text-fg-body">Use a project you already have, or create one. Both are normal Hub projects. {h._count.submissions} submitted.</p>
+          </li>
+        </ol>
+      </Section>
+
+      <Section id="criteria" title="Judging criteria">
+        <div className="grid gap-4 lg:grid-cols-3">
+          {h.stages.map((s) => {
+            const total = s.criteria.reduce((sum, c) => sum + c.weight, 0) || 1
+            return (
+              <article key={s.id} className="rounded-xl border border-line p-5">
+                <h3 className="text-fg-heading">{s.name}</h3>
+                <p className="mt-1 text-xs text-fg-muted">Scored 0 to {s.scaleMax}</p>
+                {s.showCriteria && s.criteria.length > 0 ? (
+                  <table className="mt-3 w-full text-left text-sm">
+                    <thead className="text-fg-muted"><tr><th className="py-1 font-medium">Criterion</th><th className="py-1 text-right font-medium">Weight</th></tr></thead>
+                    <tbody>
+                      {s.criteria.map((c) => (
+                        <tr key={c.id} className="border-t border-line">
+                          <td className="py-2 text-fg-heading">{c.name}<span className="mt-0.5 block text-xs font-normal text-fg-muted">{Math.round((c.weight / total) * 100)}%{c.description ? ` · ${c.description}` : ''}</span></td>
+                          <td className="py-2 text-right text-fg-body">{c.weight}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : <p className="mt-3 text-sm text-fg-muted">Criteria are hidden for this stage.</p>}
+              </article>
+            )
+          })}
+        </div>
+      </Section>
+
+      <Section id="judges" title="Judges">
+        {h.judges.length === 0 ? <p className="text-sm text-fg-muted">No judges yet.</p> : (
+          <ul className="flex flex-wrap gap-6">
+            {h.judges.map((j) => {
+              const name = j.user?.name ?? 'Invited judge'
+              return (
+                <li key={j.id} className="flex w-28 flex-col items-center text-center">
+                  <span className="grid size-12 place-items-center rounded-full border border-line bg-surface-2 text-sm text-fg-heading" aria-hidden>{initials(name)}</span>
+                  <span className="mt-2 text-sm text-fg-heading">{name}</span>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </Section>
+
+      <Section id="sponsors" title="Sponsors">
+        <p className="mb-4 text-sm text-fg-muted">Each track has one sponsor slot. These names are placeholders.</p>
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {h.tracks.map((t) => (
+            <li key={t.id} className="rounded-xl border border-line p-5">
+              <p className="text-xs text-fg-muted">{t.name}</p>
+              <p className="mt-2 text-lg text-fg-heading">{t.sponsor ?? 'Empty slot'}</p>
+            </li>
+          ))}
+        </ul>
+      </Section>
+
+      <Section id="resources" title="Resources">
+        {resources.length === 0 ? <p className="text-sm text-fg-muted">No links yet.</p> : (
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {resources.map((l) => (
+              <li key={l.href}>
+                <a href={l.href} target="_blank" rel="noreferrer" className="block rounded-xl border border-line p-4 hover:border-line">
+                  <span className="text-fg-heading">{l.label}</span>
+                  {l.body && <span className="mt-1 block text-sm text-fg-muted">{l.body}</span>}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+
+      <Section id="rules" title="Rules">
+        {h.rulesMd ? <div className="max-w-2xl"><Markdown>{h.rulesMd}</Markdown></div> : <p className="text-sm text-fg-muted">No rules text yet.</p>}
+      </Section>
+
+      <Section id="faq" title="FAQ">
+        <p className="text-sm text-fg-muted">Placeholder. This hackathon has no FAQ field, so no questions are listed.</p>
+      </Section>
+
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line py-14">
+        <p className="text-lg text-fg-heading">{event.name}</p>
+        {cta}
       </div>
     </div>
   )
