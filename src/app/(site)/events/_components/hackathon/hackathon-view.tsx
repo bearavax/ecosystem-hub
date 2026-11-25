@@ -53,6 +53,7 @@ export function HackathonView({ event, h, signedIn, mine, share, manage }: { eve
     ['tracks', 'Tracks', h.tracks.length > 0],
     ['prizes', 'Prizes', overall.length > 0 || !!h.prizePool],
     ['timeline', 'Timeline', h.stages.length > 0],
+    ['judges', 'Judges', h.judges.length > 0],
     ['rules', 'Rules', !!h.rulesMd],
     ['results', 'Winners', results.length > 0],
   ].filter(([, , show]) => show) as [string, string][]
@@ -136,6 +137,9 @@ export function HackathonView({ event, h, signedIn, mine, share, manage }: { eve
                     <p className="meta">{s.name}</p>
                     <p className="mt-1 text-fg-heading">{e ? `Submitted version ${e.projectVersion.number}` : 'Not submitted'}</p>
                     {e?.advancedAt && <p className="mt-1 text-sm text-success">Advanced to the next stage</p>}
+                    {e && !e.advancedAt && s.judgingClosedAt && (
+                      <p className="mt-1 text-sm text-fg-muted">Not advanced.{nextIsOpenToAll(h.stages, s.id) ? ' You can still submit to the next stage.' : ''}</p>
+                    )}
                   </li>
                 )
               })}
@@ -238,7 +242,7 @@ export function HackathonView({ event, h, signedIn, mine, share, manage }: { eve
 
         {h.stages.length > 0 && (
           <section id="timeline">
-            <SectionHeading title={<>Timeline<Dot /></>}>Every round has its own window and judging. Only teams advanced from a round can enter the next.</SectionHeading>
+            <SectionHeading title={<>Timeline<Dot /></>}>Each round has its own dates and judging criteria. A later round can be limited to advanced teams, or open to every team.</SectionHeading>
             <ol className="border-t border-line">
               {h.stages.map((s, i) => {
                 const state = stageState(s, now)
@@ -249,6 +253,7 @@ export function HackathonView({ event, h, signedIn, mine, share, manage }: { eve
                     <div>
                       <h3 className="text-xl">{s.name}</h3>
                       <p className="meta mt-2">{formatEventRange(s.opensAt, s.closesAt, h.timezone)}</p>
+                      {i > 0 && <p className="mt-2 text-sm text-fg-muted">{s.advancedOnly ? 'Only teams advanced from the previous round can submit.' : 'Teams that were not advanced can still submit.'}</p>}
                       <div className="mt-3"><StageStateBadge state={state} /></div>
                     </div>
                     <div className="min-w-0 space-y-5">
@@ -261,6 +266,7 @@ export function HackathonView({ event, h, signedIn, mine, share, manage }: { eve
                               <li key={c.id} className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 text-sm">
                                 <span className="text-fg-body">{c.name}</span>
                                 <span className="meta tabular-nums">{pct}%</span>
+                                {c.description && <span className="col-span-2 text-fg-muted">{c.description}</span>}
                                 <span className="col-span-2 h-px bg-line"><span className="block h-px bg-brand" style={{ width: `${pct}%` }} /></span>
                               </li>
                             )
@@ -272,6 +278,17 @@ export function HackathonView({ event, h, signedIn, mine, share, manage }: { eve
                 )
               })}
             </ol>
+          </section>
+        )}
+
+        {h.judges.length > 0 && (
+          <section id="judges">
+            <SectionHeading title={<>Judges<Dot /></>}>Names only. Each round’s criteria are in the timeline.</SectionHeading>
+            <ul className="grid border-t border-line sm:grid-cols-2 lg:grid-cols-3">
+              {h.judges.map((j) => (
+                <li key={j.id} className="border-b border-line py-4 text-fg-heading">{j.user?.name ?? 'Invited judge'}</li>
+              ))}
+            </ul>
           </section>
         )}
 
@@ -292,6 +309,12 @@ export function HackathonView({ event, h, signedIn, mine, share, manage }: { eve
       </div>
     </>
   )
+}
+
+function nextIsOpenToAll(stages: { id: string; advancedOnly: boolean }[], stageId: string) {
+  const i = stages.findIndex((s) => s.id === stageId)
+  const next = stages[i + 1]
+  return !!next && !next.advancedOnly
 }
 
 function teamSize(h: { teamSizeMin: number; teamSizeMax: number | null }) {

@@ -53,6 +53,8 @@ export function SubmitForm(props: {
   hackathonId: string
   stageId: string
   projects: ProjectOption[]
+  /** Where to go after a successful submit. Defaults to the hackathon page. */
+  successHref?: string
   /** Selected project (`?project=`); the page re-renders with its existing submission. */
   projectId: string
   /** false = the project is fixed (advanced team, or one submission per person). */
@@ -93,7 +95,7 @@ export function SubmitForm(props: {
         e.preventDefault()
         run(async () => {
           const res = await submitToStage({ hackathonId: props.hackathonId, stageId: props.stageId, projectId, trackIds, answers, preexistingIdea, builtDuringEvent })
-          if (res.ok) router.push(`/events/${res.data.slug}`)
+          if (res.ok) router.push(props.successHref ?? `/events/${res.data.slug}`)
           return res
         }, props.submittedVersion ? 'Submission updated' : 'Submitted')
       }}

@@ -13,6 +13,7 @@ export function MobileNav({ signedIn }: { signedIn: boolean }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem asChild><Link href="/events">Events</Link></DropdownMenuItem>
+        <DropdownMenuItem asChild><Link href="/polaris">Polaris</Link></DropdownMenuItem>
         <DropdownMenuItem asChild><Link href="/education">Education</Link></DropdownMenuItem>
         <DropdownMenuItem asChild><Link href="/tooling">Tooling</Link></DropdownMenuItem>
         <DropdownMenuItem asChild>

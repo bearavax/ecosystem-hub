@@ -96,6 +96,7 @@ export const getPublicHackathon = cache(async (eventId: string, userId: string |
       tracks: { orderBy: { order: 'asc' } },
       prizes: { orderBy: [{ placement: 'asc' }, { order: 'asc' }], include: { awards: { orderBy: { placement: 'asc' }, include: { submission: { include: { entries: { orderBy: { stage: { order: 'desc' } }, take: 1, include: { projectVersion: { select: { name: true, shortDescription: true } } } } } } } } } },
       stages: { orderBy: { order: 'asc' }, include: { criteria: { orderBy: { order: 'asc' }, select: { id: true, name: true, weight: true, description: true } } } },
+      judges: { orderBy: { createdAt: 'asc' }, select: { id: true, user: { select: { name: true } } } },
       fields: { where: { stageId: null }, orderBy: { order: 'asc' } },
       _count: { select: { participants: { where: { status: 'active' } }, submissions: { where: { status: 'active' } } } },
     },
