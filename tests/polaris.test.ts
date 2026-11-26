@@ -2,7 +2,7 @@ import { test } from 'vitest'
 import assert from 'node:assert/strict'
 import { canSubmitToStage } from '@/app/(site)/events/_lib/hackathons/submissions'
 import { weightedTotal } from '@/app/(site)/events/_lib/hackathons/judging'
-import { entryFilter, hasOpenSeat, parseReviewQuery, stageStanding, standingsFor, townHallLines, STANDING_LABEL } from '@/app/(site)/polaris/_lib/rules'
+import { entryFilter, formatPurse, hasOpenSeat, parseReviewQuery, stagePurse, stageStanding, standingsFor, townHallLines, STANDING_LABEL } from '@/app/(site)/polaris/_lib/rules'
 
 const d = (s: string) => new Date(s)
 const NOW = d('2026-11-25T12:00:00Z')
@@ -85,6 +85,23 @@ test('review filters ignore unknown ids and a standing with no stage', () => {
   assert.deepEqual(entryFilter('hackathon', 'not_advanced'), { kind: 'not_advanced', stageId: 'hackathon' })
   assert.deepEqual(entryFilter(undefined, 'missing'), { kind: 'any' })
   assert.deepEqual(entryFilter('hackathon', 'any'), { kind: 'any' })
+})
+
+test('stage purses add the seeded proposed places, including a placement range', () => {
+  const prizes = [
+    { title: 'Hackathon place', amount: '$1,500 proposed', placement: 1, placementTo: 20 },
+    { title: 'Accelerator place', amount: '$5,000 proposed', placement: 1, placementTo: 15 },
+    { title: 'Finale 1st', amount: '$45,000 proposed', placement: 1, placementTo: null },
+    { title: 'Finale 2nd', amount: '$25,000 proposed', placement: 1, placementTo: null },
+    { title: 'Finale 3rd', amount: '$15,000 proposed', placement: 1, placementTo: null },
+    { title: 'Finale 4th', amount: '$5,000 proposed', placement: 1, placementTo: null },
+    { title: 'Finale 5th', amount: '$5,000 proposed', placement: 1, placementTo: null },
+  ]
+  assert.deepEqual(stagePurse(prizes, 'Hackathon'), { total: 30000, awards: 20 })
+  assert.deepEqual(stagePurse(prizes, 'Accelerator'), { total: 75000, awards: 15 })
+  assert.deepEqual(stagePurse(prizes, 'Finale'), { total: 95000, awards: 5 })
+  assert.equal(formatPurse(30000), '$30K proposed')
+  assert.equal(stagePurse(prizes, 'Hackathon').total + stagePurse(prizes, 'Accelerator').total + stagePurse(prizes, 'Finale').total, 200000)
 })
 
 test('town hall lines come only from marked seed text, and open seats follow the team cap', () => {

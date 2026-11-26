@@ -14,9 +14,9 @@ export default async function StagesPage() {
   const { h } = ctx
   return (
     <div className="space-y-12">
-      <div className="relative h-52 overflow-hidden rounded-xl">
+      <div className="relative h-56 overflow-hidden rounded-xl">
         <SvalbardPeak />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(3,8,18,0.78)_0%,rgba(3,8,18,0.28)_40%,transparent_70%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_12%_70%,rgba(3,8,18,0.72)_0%,rgba(3,8,18,0.2)_38%,transparent_62%)]" />
         <div className="absolute bottom-4 left-5">
           <p className="text-[11px] text-amber-200">Stage 1 to Stage 3</p>
           <h2 className="text-2xl text-white">Mountains</h2>

@@ -154,6 +154,31 @@ export type EntryFilter =
   | { kind: 'advanced'; stageId: string }
   | { kind: 'not_advanced'; stageId: string }
 
+export type PursePrize = { title: string; amount: string | null; placement: number; placementTo: number | null }
+
+function proposedDollars(amount: string | null) {
+  const match = amount?.replace(/,/g, '').match(/\$(\d+)/)
+  return match ? Number(match[1]) : 0
+}
+
+/** Sum a stage's proposed places. A row with placementTo counts once per place. */
+export function stagePurse(prizes: PursePrize[], titlePrefix: string) {
+  const rows = prizes.filter((prize) => prize.title.toLowerCase().startsWith(titlePrefix.toLowerCase()))
+  let total = 0
+  let awards = 0
+  for (const row of rows) {
+    const count = row.placementTo != null && row.placementTo >= row.placement ? row.placementTo - row.placement + 1 : 1
+    total += proposedDollars(row.amount) * count
+    awards += count
+  }
+  return { total, awards }
+}
+
+export function formatPurse(total: number) {
+  if (total >= 1000 && total % 1000 === 0) return `$${total / 1000}K proposed`
+  return `$${total.toLocaleString('en-US')} proposed`
+}
+
 export function entryFilter(stageId: string | undefined, standing: StandingFilter): EntryFilter {
   if (!stageId || standing === 'any') return { kind: 'any' }
   switch (standing) {

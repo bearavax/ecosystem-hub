@@ -6,9 +6,34 @@ import { publishIgloos, type IglooTone, type IglooUrls } from './igloo-store'
 type ThreeNS = typeof import('three')
 
 function sampleHeight(data: Uint8ClampedArray, u: number, v: number) {
-  const x = Math.min(255, Math.max(0, Math.floor(u * 255)))
-  const y = Math.min(255, Math.max(0, Math.floor(v * 255)))
-  return data[(y * 256 + x) * 4]! / 255
+  const x = Math.min(254.999, Math.max(0, u * 255))
+  const y = Math.min(254.999, Math.max(0, v * 255))
+  const x0 = Math.floor(x)
+  const y0 = Math.floor(y)
+  const tx = x - x0
+  const ty = y - y0
+  const at = (ix: number, iy: number) => data[(iy * 256 + ix) * 4]! / 255
+  const a = at(x0, y0)
+  const b = at(x0 + 1, y0)
+  const c = at(x0, y0 + 1)
+  const d = at(x0 + 1, y0 + 1)
+  return a + (b - a) * tx + (c - a) * ty + (a - b - c + d) * tx * ty
+}
+
+function ridged(u: number, v: number) {
+  let amp = 1
+  let freq = 3.2
+  let sum = 0
+  let norm = 0
+  for (let octave = 0; octave < 4; octave++) {
+    const n = valueNoise(u * freq + octave * 3.7, v * freq + octave * 1.9)
+    const ridge = 1 - Math.abs(n * 2 - 1)
+    sum += ridge * ridge * amp
+    norm += amp
+    amp *= 0.48
+    freq *= 2.05
+  }
+  return sum / norm
 }
 
 async function loadHeights() {
@@ -118,18 +143,16 @@ const AURORA_FRAG = `
   uniform float uShift;
   void main() {
     float x = vUv.x;
-    float y = vUv.y + sin(x * 7.0 + uTime * 0.22 + uShift) * 0.035;
-    float bands = sin(x * 22.0 + uShift + sin(y * 4.0 + uTime * 0.15) * 0.8);
-    float curtains = smoothstep(0.55, 0.92, bands);
-    float body = smoothstep(0.08, 0.34, y) * (1.0 - smoothstep(0.52, 0.9, y));
-    float side = smoothstep(0.0, 0.22, x) * (1.0 - smoothstep(0.78, 1.0, x));
-    float alpha = body * side * curtains * 0.32;
-    vec3 emerald = vec3(0.180, 0.902, 0.659);
+    float y = vUv.y + sin(x * 5.0 + uTime * 0.18 + uShift) * 0.03;
+    float rays = 0.62 + 0.38 * sin(x * 36.0 + uTime * 0.15 + uShift);
+    float side = smoothstep(0.0, 0.16, x) * (1.0 - smoothstep(0.84, 1.0, x));
+    float body = smoothstep(0.0, 0.2, y) * (1.0 - smoothstep(0.62, 0.98, y));
+    float alpha = side * body * rays * 0.34;
+    vec3 emerald = vec3(0.204, 0.827, 0.600);
     vec3 cyan = vec3(0.220, 0.741, 0.973);
     vec3 violet = vec3(0.506, 0.549, 0.973);
-    float band = 0.5 + 0.5 * sin(x * 5.0 + uShift);
-    vec3 col = mix(emerald, cyan, band);
-    col = mix(col, violet, smoothstep(0.4, 0.85, y) * 0.5);
+    vec3 col = mix(emerald, cyan, smoothstep(0.12, 0.55, x));
+    col = mix(col, violet, smoothstep(0.5, 0.95, x) * 0.7);
     gl_FragColor = vec4(col, alpha);
   }
 `
@@ -229,19 +252,22 @@ function buildTerrain(THREE: ThreeNS, heights: Uint8ClampedArray, size: number, 
     const u = pos.getX(i) / size + 0.5
     const v = pos.getY(i) / size + 0.5
     const h = sampleHeight(heights, u, v)
-    const ridge = valueNoise(u * 24, v * 24)
-    const grit = valueNoise(u * 61 + 3.2, v * 61)
-    pos.setZ(i, Math.pow(h, 1.15) * lift + (ridge - 0.5) * 0.48 + (grit - 0.5) * 0.14)
+    const base = Math.pow(h, 1.08) * lift
+    const crest = (ridged(u * 1.8, v * 1.8) - 0.42) * lift * 0.055 * (0.2 + h)
+    const edge = Math.min(u, v, 1 - u, 1 - v)
+    const t = Math.min(1, Math.max(0, edge / 0.24))
+    const falloff = t * t * (3 - 2 * t)
+    pos.setZ(i, (base + crest) * falloff)
   }
   geo.computeVertexNormals()
   const normals = geo.attributes.normal!
   const moon = new THREE.Vector3(18, 26, -16).normalize()
   const moonLocal = new THREE.Vector3(moon.x, -moon.z, moon.y).normalize()
   const colors = new Float32Array(pos.count * 3)
-  const rockLo = lin(THREE, 0x0b1422)
-  const rockHi = lin(THREE, 0x182436)
-  const snowShade = lin(THREE, 0x6c92b8)
-  const snowLit = lin(THREE, 0xe7f2ff)
+  const rockLo = lin(THREE, 0x08101d)
+  const rockHi = lin(THREE, 0x132033)
+  const snowShade = lin(THREE, 0x7ba3cc)
+  const snowLit = lin(THREE, 0xd8eeff)
   const n = new THREE.Vector3()
   const span = 2 / 256
   for (let i = 0; i < pos.count; i++) {
@@ -250,12 +276,7 @@ function buildTerrain(THREE: ThreeNS, heights: Uint8ClampedArray, size: number, 
     const dx = sampleHeight(heights, u + span, v) - sampleHeight(heights, u - span, v)
     const dy = sampleHeight(heights, u, v + span) - sampleHeight(heights, u, v - span)
     const grad = Math.hypot(dx, dy) * 32
-    n.set(normals.getX(i), normals.getY(i), normals.getZ(i))
-    const grit = (valueNoise(u * 40, v * 40) - 0.5) * 0.22
-    n.x += grit
-    n.y += grit * 0.35
-    n.normalize()
-    normals.setXYZ(i, n.x, n.y, n.z)
+    n.set(normals.getX(i), normals.getY(i), normals.getZ(i)).normalize()
     const light = Math.min(1, Math.max(0, n.dot(moonLocal)))
     const snowCover = 1 - Math.min(1, Math.max(0, (grad - 0.28) / 0.7))
     const grain = valueNoise(u * 18, v * 18)
@@ -279,7 +300,7 @@ function buildTerrain(THREE: ThreeNS, heights: Uint8ClampedArray, size: number, 
 function worldHeight(heights: Uint8ClampedArray, x: number, z: number, size: number, lift: number) {
   const u = x / size + 0.5
   const v = 0.5 - z / size
-  return Math.pow(sampleHeight(heights, u, v), 1.15) * lift
+  return Math.pow(sampleHeight(heights, u, v), 1.08) * lift
 }
 
 let baked = false
@@ -290,14 +311,26 @@ function bakeIgloos(THREE: ThreeNS, renderer: import('three').WebGLRenderer) {
   const size = 192
   const target = new THREE.WebGLRenderTarget(size, size)
   const scene = new THREE.Scene()
-  scene.background = new THREE.Color(0x1b2e48)
-  scene.add(new THREE.HemisphereLight(0xd7ecff, 0x24344c, 1.45))
-  const moon = new THREE.DirectionalLight(0xf7fbff, 2.5)
-  moon.position.set(4, 6, 3)
+  scene.add(new THREE.HemisphereLight(0xd7ecff, 0x102033, 1.2))
+  const moon = new THREE.DirectionalLight(0xf7fbff, 2.2)
+  moon.position.set(3, 6, 4)
   scene.add(moon)
-  const rim = new THREE.DirectionalLight(0x8ecfff, 1.15)
-  rim.position.set(-4, 2, -3)
+  const rim = new THREE.DirectionalLight(0x7dd3fc, 1.8)
+  rim.position.set(-5, 2, -2)
   scene.add(rim)
+  const vignette = glowTexture(THREE, (ctx, s) => {
+    const g = ctx.createRadialGradient(s / 2, s / 2, s * 0.08, s / 2, s / 2, s * 0.48)
+    g.addColorStop(0, '#16304e')
+    g.addColorStop(0.62, '#0c1a2e')
+    g.addColorStop(1, '#07101c')
+    ctx.fillStyle = g
+    ctx.beginPath()
+    ctx.arc(s / 2, s / 2, s * 0.48, 0, Math.PI * 2)
+    ctx.fill()
+  }, 256)
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(1.15, 40), new THREE.MeshBasicMaterial({ map: vignette, transparent: true }))
+  disc.position.set(0, 0.34, -0.2)
+  scene.add(disc)
   const cam = new THREE.PerspectiveCamera(28, 1, 0.1, 20)
   cam.position.set(0.35, 0.78, 2.35)
   cam.lookAt(0, 0.32, 0.25)
@@ -316,7 +349,7 @@ function bakeIgloos(THREE: ThreeNS, renderer: import('three').WebGLRenderer) {
     const igloo = makeIgloo(THREE, tone.tint)
     scene.add(igloo)
     renderer.setRenderTarget(target)
-    renderer.setClearColor(0x1b2e48, 1)
+    renderer.setClearColor(0x000000, 0)
     renderer.render(scene, cam)
     renderer.readRenderTargetPixels(target, 0, 0, size, size, pixels)
     const image = fctx.createImageData(size, size)
@@ -336,6 +369,7 @@ function bakeIgloos(THREE: ThreeNS, renderer: import('three').WebGLRenderer) {
   }
   renderer.setRenderTarget(null)
   renderer.setClearColor(0x030812, 1)
+  vignette.dispose()
   target.dispose()
   publishIgloos(urls)
 }
@@ -350,9 +384,9 @@ function mount(THREE: ThreeNS, host: HTMLElement, mode: 'world' | 'peak', reduce
   host.appendChild(renderer.domElement)
 
   const scene = new THREE.Scene()
-  scene.fog = new THREE.FogExp2(0x050d1a, mode === 'peak' ? 0.042 : 0.016)
-  scene.add(new THREE.HemisphereLight(0x16304e, 0x05080e, 0.16))
-  const moon = new THREE.DirectionalLight(0xd6e8ff, mode === 'peak' ? 2.6 : 2.35)
+  scene.fog = new THREE.FogExp2(0x050d1a, mode === 'peak' ? 0.02 : 0.011)
+  scene.add(new THREE.HemisphereLight(0x16304e, 0x05080e, 0.1))
+  const moon = new THREE.DirectionalLight(0xd6e8ff, mode === 'peak' ? 2.8 : 2.9)
   moon.position.set(22, 30, -16)
   scene.add(moon)
   const fill = new THREE.DirectionalLight(0x6d8eae, 0.2)
@@ -368,9 +402,9 @@ function mount(THREE: ThreeNS, host: HTMLElement, mode: 'world' | 'peak', reduce
   const starTex = glowTexture(THREE, paintStar, 64)
   const starLayers: import('three').Points[] = []
   const starSpecs = [
-    { count: 190, size: 1.35, opacity: 0.7 },
-    { count: 64, size: 2.4, opacity: 0.9 },
-    { count: 22, size: 3.8, opacity: 1 },
+    { count: 300, size: 1.2, opacity: 0.62 },
+    { count: 90, size: 2.1, opacity: 0.85 },
+    { count: 24, size: 3.2, opacity: 1 },
   ]
   for (const spec of starSpecs) {
     const geo = new THREE.BufferGeometry()
@@ -400,28 +434,24 @@ function mount(THREE: ThreeNS, host: HTMLElement, mode: 'world' | 'peak', reduce
   }
 
   const auroraMats: import('three').ShaderMaterial[] = []
-  const curtains = mode === 'peak'
-    ? [{ x: 1.5, y: 7.6, z: -9, w: 12, h: 4.5, shift: 0.6 }]
-    : [
-        { x: 5.5, y: 12.2, z: -1, w: 11, h: 5.5, shift: 0.4 },
-        { x: 8, y: 11.4, z: -6, w: 8, h: 4.2, shift: 1.8 },
-      ]
-  for (const curtain of curtains) {
-    const mat = new THREE.ShaderMaterial({
-      uniforms: { uTime: { value: 0 }, uShift: { value: curtain.shift } },
-      vertexShader: AURORA_VERT,
-      fragmentShader: AURORA_FRAG,
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
-      fog: false,
-    })
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(curtain.w, curtain.h, 24, 8), mat)
-    mesh.position.set(curtain.x, curtain.y, curtain.z)
-    scene.add(mesh)
-    auroraMats.push(mat)
-  }
+  const ribbon = mode === 'peak'
+    ? { x: 0, y: 8.2, z: -12, w: 28, h: 7, shift: 0.4, tilt: -0.55 }
+    : { x: -2, y: 12.4, z: -16, w: 48, h: 9, shift: 0.2, tilt: -0.5 }
+  const ribbonMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 }, uShift: { value: ribbon.shift } },
+    vertexShader: AURORA_VERT,
+    fragmentShader: AURORA_FRAG,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide,
+    fog: false,
+  })
+  const ribbonMesh = new THREE.Mesh(new THREE.PlaneGeometry(ribbon.w, ribbon.h, 48, 10), ribbonMat)
+  ribbonMesh.position.set(ribbon.x, ribbon.y, ribbon.z)
+  ribbonMesh.rotation.z = ribbon.tilt
+  scene.add(ribbonMesh)
+  auroraMats.push(ribbonMat)
 
   const flareTex = glowTexture(THREE, paintFlare, 160)
   const flare = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -431,20 +461,20 @@ function mount(THREE: ThreeNS, host: HTMLElement, mode: 'world' | 'peak', reduce
     blending: THREE.AdditiveBlending,
     fog: false,
   }))
-  flare.scale.setScalar(mode === 'peak' ? 1.15 : 0.95)
+  flare.scale.setScalar(mode === 'peak' ? 1.35 : 1.7)
   flare.position.set(-2, mode === 'peak' ? 9 : 18, -12)
   scene.add(flare)
 
-  const size = mode === 'peak' ? 28 : 56
-  const lift = mode === 'peak' ? 8 : 14
-  const camera = new THREE.PerspectiveCamera(mode === 'peak' ? 24 : 31, 1, 0.1, 220)
+  const size = mode === 'peak' ? 80 : 80
+  const lift = mode === 'peak' ? 11 : 11
+  const camera = new THREE.PerspectiveCamera(mode === 'peak' ? 22 : 46, 1, 0.1, 260)
   const look = new THREE.Vector3()
   if (mode === 'peak') {
-    camera.position.set(7.2, 4.6, 12.5)
-    look.set(-1.4, 4.4, -7.5)
+    camera.position.set(18, 7, 14)
+    look.set(-4, 1.5, -16)
   } else {
-    camera.position.set(6, 10, 22)
-    look.set(-3, 4.2, -10)
+    camera.position.set(22, 7.5, 16)
+    look.set(-2, -2, -12)
   }
   camera.lookAt(look)
 
@@ -473,34 +503,46 @@ function mount(THREE: ThreeNS, host: HTMLElement, mode: 'world' | 'peak', reduce
   }
 
   const boot = loadHeights().then((map) => {
-    const terrain = buildTerrain(THREE, map, size, mode === 'peak' ? 80 : 128, lift)
+    const terrain = buildTerrain(THREE, map, size, mode === 'peak' ? 120 : 160, lift)
     scene.add(terrain)
     let peak = { x: 0, y: 0, z: -8 }
     for (let iy = 0; iy < 64; iy++) {
       for (let ix = 0; ix < 64; ix++) {
         const u = ix / 63
         const v = iy / 63
-        const y = Math.pow(sampleHeight(map, u, v), 1.15) * lift
+        const y = Math.pow(sampleHeight(map, u, v), 1.08) * lift
         if (y > peak.y) peak = { x: (u - 0.5) * size, y, z: -(v - 0.5) * size }
       }
     }
-    if (mode === 'peak') flare.position.set(peak.x + 0.5, peak.y + 0.72, peak.z + 0.3)
-    else flare.position.set(4.8, 11.2, 1.6)
+    if (mode === 'peak') flare.position.set(peak.x + 0.4, peak.y + 1.5, peak.z + 0.6)
+    else flare.position.set(-4, 13, -20)
+    const star = flare.position
+    const constellation = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        star.clone().add(new THREE.Vector3(-2.2, 0.7, -0.4)),
+        star.clone().add(new THREE.Vector3(-0.7, 0.25, -0.1)),
+        star.clone(),
+        star.clone().add(new THREE.Vector3(1.1, 0.85, 0.2)),
+        star.clone().add(new THREE.Vector3(2.1, 0.15, -0.3)),
+      ]),
+      new THREE.LineBasicMaterial({ color: 0xc5dcff, transparent: true, opacity: 0.38, fog: false }),
+    )
+    scene.add(constellation)
     const water = new THREE.Mesh(
       new THREE.PlaneGeometry(size * 1.4, size * 1.4),
       new THREE.ShaderMaterial({ vertexShader: WATER_VERT, fragmentShader: WATER_FRAG, transparent: true, depthWrite: false }),
     )
     water.rotation.x = -Math.PI / 2
-    water.position.y = 0.35
+    water.position.y = 1.15
     scene.add(water)
     if (mode === 'world') {
-      const spots: [number, number][] = [[1.6, -11.4], [2.6, -11.6], [3.4, -12.2], [2.2, -12.6], [3.9, -11.2]]
+      const spots: [number, number][] = [[14, -9.8], [9.1, -1.4], [10.5, -5.6], [11.2, -7.7], [13.3, -7.7], [12.6, -13.3]]
       for (const [x, z] of spots) {
-        const y = worldHeight(map, x, z, size, lift) + 0.2
-        const igloo = makeIgloo(THREE, 0xf7fbff, 0.26)
+        const y = worldHeight(map, x, z, size, lift) + 0.06
+        const igloo = makeIgloo(THREE, 0xf7fbff, 0.42)
         igloo.position.set(x, y, z)
         igloo.rotation.y = Math.atan2(camera.position.x - x, camera.position.z - z)
-        igloo.scale.setScalar(0.5)
+        igloo.scale.setScalar(0.85)
         scene.add(igloo)
       }
       bakeIgloos(THREE, renderer)

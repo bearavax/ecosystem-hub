@@ -7,24 +7,27 @@ import { Home, List, Mountain, Send, Star, Tent, User, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const MAIN = [
-  { href: '/polaris', label: 'Live', icon: Home, exact: true },
-  { href: '/polaris/den', label: 'My Den', icon: User, exact: false },
-  { href: '/polaris/enter', label: 'Submit', icon: Send, exact: false },
-  { href: '/polaris/stages', label: 'Stages', icon: Mountain, exact: false },
-  { href: '/polaris/lodge', label: 'Lodge', icon: Tent, exact: false },
-  { href: '/polaris/stars', label: 'Stars', icon: Star, exact: false },
+  { href: '/polaris', label: 'Overview', hint: 'Start here', icon: Home, exact: true },
+  { href: '/polaris/stages', label: 'Stages & Prizes', hint: 'Journey and prizes', icon: Mountain, exact: false },
+  { href: '/polaris/den', label: 'My Den', hint: 'Your team and project', icon: User, exact: false },
+  { href: '/polaris/enter', label: 'Submit', hint: 'Seal a submission', icon: Send, exact: false },
+  { href: '/polaris/lodge', label: 'Lodge', hint: 'Find teammates', icon: Tent, exact: false },
+  { href: '/polaris/stars', label: 'Stars', hint: 'Winners and hall', icon: Star, exact: false },
 ] as const
 
-function Item({ href, label, icon: Icon, on, onNavigate }: { href: string; label: string; icon: typeof Home; on: boolean; onNavigate?: () => void }) {
+function Item({ href, label, hint, icon: Icon, on, onNavigate }: { href: string; label: string; hint: string; icon: typeof Home; on: boolean; onNavigate?: () => void }) {
   return (
     <Link
       href={href}
       onClick={onNavigate}
       aria-current={on ? 'page' : undefined}
-      className={cn('flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm', on ? 'bg-sky-400/20 text-sky-100' : 'text-fg-muted hover:bg-surface-2 hover:text-fg-heading')}
+      className={cn('flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm', on ? 'bg-sky-400/20 text-sky-100' : 'text-fg-muted hover:bg-surface-2 hover:text-fg-heading')}
     >
       <Icon className="size-4 shrink-0" aria-hidden />
-      {label}
+      <span className="min-w-0">
+        <span className="block leading-tight">{label}</span>
+        <span className={cn('block text-[10px] leading-tight', on ? 'text-sky-100/70' : 'text-fg-faint')}>{hint}</span>
+      </span>
     </Link>
   )
 }

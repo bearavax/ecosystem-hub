@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { Flag, PawPrint } from 'lucide-react'
 import { stageState } from '@/app/(site)/events/_lib/hackathons/rules'
 import { PageHeader } from '@/components/layout/page-header'
-import { DENS_PAGE_SIZE, STANDING_LABEL, hasOpenSeat, standingsFor, townHallLines, type Standing } from './_lib/rules'
+import { DENS_PAGE_SIZE, STANDING_LABEL, formatPurse, hasOpenSeat, stagePurse, standingsFor, townHallLines, type Standing } from './_lib/rules'
 import { IglooEmblem } from './_components/igloo-emblem'
 import { listAround, listDens, loadPolarisContext, type DenRow } from './_lib/queries'
 import { pageParam, textParam } from '@/lib/params'
@@ -47,10 +47,9 @@ export default async function PolarisLivePage({ searchParams }: { searchParams: 
   const openOnly = textParam(sp.open) === '1'
   const page = pageParam(sp.page)
   const now = new Date()
-  const [dens, around, snapshot] = await Promise.all([
+  const [dens, around] = await Promise.all([
     listDens(ctx.h.id, { page, pageSize: DENS_PAGE_SIZE, trackId, stageId: stageForFilter, standing: standingForQuery, openOnly, teamMax: ctx.h.teamSizeMax }),
     listAround(ctx.h.id),
-    listDens(ctx.h.id, { page: 1, pageSize: 5, standing: 'any', openOnly: false, teamMax: ctx.h.teamSizeMax }),
   ])
   const notes = townHallLines(ctx.h.aboutMd)
   const href = (extra: Record<string, string | undefined>) => {
@@ -62,45 +61,92 @@ export default async function PolarisLivePage({ searchParams }: { searchParams: 
   }
 
   const chip = (on: boolean) => (on ? 'shrink-0 rounded-full bg-sky-400/20 px-3 py-1 text-sky-100' : 'shrink-0 rounded-full border border-sky-400/20 px-3 py-1 text-fg-muted')
+  const story = [
+    { name: 'Tundra', blurb: 'Hackathon' },
+    { name: 'Mountains', blurb: 'Accelerator' },
+    { name: 'Stars', blurb: 'Finale' },
+  ] as const
+  const rings = ['bg-emerald-400/20 text-emerald-100 ring-emerald-300/70', 'bg-cyan-400/20 text-cyan-100 ring-cyan-300/70', 'bg-amber-400/20 text-amber-100 ring-amber-300/70', 'bg-violet-400/20 text-violet-100 ring-violet-300/70', 'bg-rose-400/20 text-rose-100 ring-rose-300/70', 'bg-sky-400/20 text-sky-100 ring-sky-300/70']
+  const trackAccent: Record<string, string> = {
+    polaris_track_gaming: 'border-emerald-300/50',
+    polaris_track_social: 'border-cyan-300/50',
+    polaris_track_ai: 'border-amber-300/50',
+    polaris_track_payments: 'border-violet-300/50',
+    polaris_track_lifestyle: 'border-rose-300/50',
+    polaris_track_open: 'border-sky-300/50',
+  }
   return (
     <div className="space-y-8">
-      <section>
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <h2 className="text-lg text-fg-heading">Town hall</h2>
-          <span className="rounded-full border border-sky-400/30 px-2 py-0.5 text-[10px] tracking-[0.12em] text-sky-300">Town hall</span>
-        </div>
-        <div className="rounded-xl border border-sky-300/15 bg-[#0F2137]/80 shadow-[inset_0_1px_0_rgba(186,230,253,0.16)]">
-          {notes.length === 0 && <p className="px-4 py-3 text-sm text-fg-muted">No announcements in the seed.</p>}
-          {notes.map((n, i) => (
-            <div key={n.title} className={i === 0 ? 'px-4 py-3' : 'border-t border-line px-4 py-3'}>
-              <p className="text-sm text-fg-heading">{n.title}</p>
-              <p className="text-xs text-fg-muted">{n.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <h2 className="text-lg text-fg-heading">Who&apos;s around</h2>
-        <ul className="mt-3 flex gap-4 overflow-x-auto pb-1">
-          {around.map((p) => {
-            const writers = p.user.projectMembers.map((m) => m.project.members.length)
-            const open = writers.some((n) => hasOpenSeat(n, ctx.h.teamSizeMax))
+      <section id="journey" className="scroll-mt-24">
+        <h2 className="text-lg text-fg-heading">Three stages</h2>
+        <ol className="mt-3 grid gap-3 lg:grid-cols-3">
+          {ctx.h.stages.map((stage, i) => {
+            const purse = stagePurse(ctx.h.prizes, stage.name)
+            const state = stageState(stage, now)
+            const live = state === 'open'
+            const meta = i === 2 ? `${purse.awards} grand winners` : `${purse.awards} awards`
             return (
-              <li key={p.user.name} className="flex shrink-0 items-center gap-2">
-                <span className="relative grid size-9 place-items-center rounded-full border border-sky-400/30 bg-surface-2 text-xs text-fg-heading" aria-hidden>
-                  {p.user.name.slice(0, 1)}
-                  {open && <Flag className="absolute -right-1 -top-1 size-3 text-sky-300" />}
-                </span>
-                <span>
-                  <span className="block text-sm text-fg-heading">{p.user.name}</span>
-                  <span className="text-[11px] text-sky-300/80">{open ? 'Open to team' : 'Around now'}</span>
-                </span>
+              <li key={stage.id}>
+                <Link href="/polaris/stages" className={`block h-full rounded-xl border p-4 backdrop-blur-md ${live ? 'border-sky-300/50 bg-sky-400/10 shadow-[0_0_32px_rgba(56,189,248,0.18)]' : 'border-white/10 bg-[#071324]/78'}`}>
+                  <p className="text-[11px] text-sky-200">0{i + 1} · {story[i]?.name} ({story[i]?.blurb})</p>
+                  <p className="mt-2 text-lg text-white">{formatPurse(purse.total)} · {meta}</p>
+                  <p className={`mt-2 text-sm ${live ? 'text-sky-100' : 'text-fg-muted'}`}>{live ? 'Open now' : state === 'upcoming' ? 'Upcoming' : 'Closed'}</p>
+                  {live && <p className="mt-1 text-xs text-sky-100/80">Stage 1 teams welcome. Repeat winners allowed.</p>}
+                </Link>
               </li>
             )
           })}
-        </ul>
+        </ol>
       </section>
+
+      <section className="grid gap-3 md:grid-cols-3">
+        {[
+          ['1', 'Join or start a Den', '/polaris/den'],
+          ['2', 'Find teammates in the Lodge', '/polaris/lodge'],
+          ['3', 'Submit for Stage 2', '/polaris/enter'],
+        ].map(([n, label, href]) => (
+          <Link key={n} href={href} className="flex min-h-11 items-center gap-3 rounded-xl border border-white/10 bg-[#071324]/78 px-4 py-3 text-sm text-fg-heading backdrop-blur-md hover:border-sky-300/40">
+            <span className="grid size-8 place-items-center rounded-full bg-sky-400/20 text-sky-100">{n}</span>
+            {label}
+          </Link>
+        ))}
+      </section>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="rounded-xl border border-white/10 bg-[#071324]/78 p-4 backdrop-blur-md">
+          <h2 className="text-lg text-fg-heading">Town hall</h2>
+          <div className="mt-3">
+            {notes.length === 0 && <p className="text-sm text-fg-muted">No announcements in the seed.</p>}
+            {notes.map((n) => (
+              <div key={n.title} className="border-t border-white/10 py-2 first:border-t-0 first:pt-0">
+                <p className="text-sm text-fg-heading">{n.title}</p>
+                <p className="text-xs text-fg-muted">{n.body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="rounded-xl border border-white/10 bg-[#071324]/78 p-4 backdrop-blur-md">
+          <h2 className="text-lg text-fg-heading">Who&apos;s around</h2>
+          <ul className="mt-3 flex flex-wrap gap-3">
+            {around.map((p, i) => {
+              const writers = p.user.projectMembers.map((m) => m.project.members.length)
+              const open = writers.some((n) => hasOpenSeat(n, ctx.h.teamSizeMax))
+              return (
+                <li key={p.user.name} className="flex min-w-[9rem] items-center gap-2">
+                  <span className={`relative grid size-9 place-items-center rounded-full text-xs ring-2 ${rings[i % rings.length]}`} aria-hidden>
+                    {p.user.name.slice(0, 1)}
+                    {open && <Flag className="absolute -right-1 -top-1 size-3 text-emerald-200" />}
+                  </span>
+                  <span>
+                    <span className="block text-sm text-fg-heading">{p.user.name}</span>
+                    <span className="text-[11px] text-sky-200">{open ? 'Open to team' : 'Around now'}</span>
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      </div>
 
       <section>
         <div className="flex items-baseline justify-between gap-3">
@@ -125,11 +171,12 @@ export default async function PolarisLivePage({ searchParams }: { searchParams: 
             const label = badge(ctx.h.stages, row, now)
             const kind: Standing | 'stage2' = label.startsWith('Not advanced · Stage 2') ? 'stage2' : (standingsFor(ctx.h.stages, row.entries, 'active', now)[0]?.standing ?? 'missed')
             const tone = kind === 'stage2' || kind === 'not_advanced' ? 'rose' : open ? 'amber' : 'ice'
+            const accent = trackAccent[row.trackIds[0] ?? ''] ?? 'border-sky-300/40'
             return (
-              <li key={row.id} className="rounded-xl border border-sky-300/15 bg-[#091526]/78 p-4 shadow-[inset_0_1px_0_rgba(186,230,253,0.18)] backdrop-blur-md motion-safe:transition motion-safe:duration-300 motion-safe:hover:-translate-y-1 motion-safe:hover:shadow-[0_18px_36px_rgba(4,12,28,0.45),inset_0_1px_0_rgba(186,230,253,0.35)]">
+              <li key={row.id} className={`rounded-xl border border-white/10 border-t-2 bg-[#071324]/78 p-4 backdrop-blur-md motion-safe:transition motion-safe:duration-300 motion-safe:hover:-translate-y-1 ${accent}`}>
                 <div className="flex items-start justify-between gap-2">
                   <IglooEmblem tone={tone} />
-                  {open && <span className="text-[10px] tracking-[0.12em] text-sky-300">Open seat</span>}
+                  {open && <Link href="/polaris/lodge" className="rounded-full bg-emerald-400/15 px-2 py-1 text-[11px] text-emerald-100">+ Open seat</Link>}
                 </div>
                 <h3 className="mt-3 text-fg-heading">{row.project.currentVersion?.name ?? 'Untitled'}</h3>
                 <p className="text-sm text-fg-muted">{row.trackIds.map((id) => ctx.h.tracks.find((t) => t.id === id)?.name).filter(Boolean).join(', ')}</p>
@@ -138,37 +185,9 @@ export default async function PolarisLivePage({ searchParams }: { searchParams: 
             )
           })}
         </ul>
-        <p className="mt-3 text-xs text-fg-muted">Tracks are categories, not separate prize pools.</p>
         <div className="mt-3 flex gap-3 text-sm">
           {page > 1 && <Link href={href({ page: String(page - 1) })} className="text-fg-heading underline-offset-2 hover:underline">Previous</Link>}
           {dens.hasMore && <Link href={href({ page: String(page + 1) })} className="text-fg-heading underline-offset-2 hover:underline">Next</Link>}
-        </div>
-      </section>
-
-      <section>
-        <div className="mb-2 flex items-baseline justify-between gap-3">
-          <h2 className="text-lg text-fg-heading">Review queue</h2>
-          <Link href="/polaris/review" className="text-xs text-sky-300 underline-offset-2 hover:underline">Full queue, 25 per page</Link>
-        </div>
-        <div className="overflow-x-auto rounded-xl border border-sky-300/15 bg-[#0F2137]/80 shadow-[inset_0_1px_0_rgba(186,230,253,0.16)]">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs text-fg-muted"><tr><th className="px-3 py-2 font-medium">Den</th><th className="px-3 py-2 font-medium">Track</th><th className="px-3 py-2 font-medium">Stage</th><th className="px-3 py-2 font-medium">Standing</th><th className="px-3 py-2 font-medium">Note</th></tr></thead>
-            <tbody>
-              {snapshot.rows.map((row) => {
-                const label = badge(ctx.h.stages, row, now)
-                const kind: Standing | 'stage2' = label.startsWith('Not advanced · Stage 2') ? 'stage2' : (standingsFor(ctx.h.stages, row.entries, 'active', now)[0]?.standing ?? 'missed')
-                return (
-                  <tr key={row.id} className="border-t border-line">
-                    <td className="px-3 py-2 text-fg-heading">{row.project.currentVersion?.name}</td>
-                    <td className="px-3 py-2 text-fg-body">{row.trackIds.map((id) => ctx.h.tracks.find((t) => t.id === id)?.name).filter(Boolean).join(', ')}</td>
-                    <td className="px-3 py-2 text-fg-body">{ctx.h.stages[0]?.name ?? 'Stage 1'}</td>
-                    <td className="px-3 py-2"><span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] tracking-wide ${pillClass(kind)}`}>{label}</span></td>
-                    <td className="px-3 py-2 text-xs text-fg-muted">{label.includes('Stage 2') ? 'Eligible for Stage 2' : ''}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
         </div>
       </section>
 
