@@ -59,13 +59,13 @@ export function PolarisFrame({ header, children }: { header: ReactNode; children
     <div className="mx-auto w-full max-w-[1280px] px-4 py-4">
       {header}
       <div className="mt-4 flex items-start gap-6">
-        <aside className="sticky top-20 hidden w-60 shrink-0 rounded-xl border border-sky-400/20 bg-surface-1/80 p-3 md:block">
+        <aside className="sticky top-20 hidden w-60 shrink-0 rounded-xl border border-sky-300/15 bg-[#0F2137]/80 p-3 shadow-[inset_0_1px_0_rgba(186,230,253,0.2)] motion-safe:[transform:perspective(900px)_rotateY(3deg)] motion-safe:transition motion-safe:hover:[transform:perspective(900px)_rotateY(0deg)] md:block">
           <NavList />
         </aside>
         {open && (
           <div className="fixed inset-0 z-40 md:hidden">
             <button type="button" className="absolute inset-0 bg-black/50" aria-label="Close menu" onClick={() => setOpen(false)} />
-            <aside className="absolute inset-y-0 left-0 flex w-60 flex-col bg-surface-0 p-4">
+            <aside className="absolute inset-y-0 left-0 flex w-60 flex-col border-r border-sky-300/15 bg-[#0F2137] p-4">
               <button type="button" className="mb-4 inline-flex min-h-11 items-center gap-2 text-sm text-fg-muted" onClick={() => setOpen(false)}>
                 <X className="size-4" aria-hidden /> Close
               </button>

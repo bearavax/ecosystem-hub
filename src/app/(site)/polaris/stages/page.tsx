@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { stageState } from '@/app/(site)/events/_lib/hackathons/rules'
 import { StageStateBadge } from '@/components/stage-state-badge'
 import { formatEventRange } from '@/lib/dates'
+import { MountainBeacon } from '../_components/mountain-beacon'
 import { loadPolarisContext } from '../_lib/queries'
 
 export const metadata: Metadata = { title: 'Polaris stages' }
@@ -13,11 +14,15 @@ export default async function StagesPage() {
   const { h } = ctx
   return (
     <div className="space-y-12">
-      <div className="relative h-36 overflow-hidden rounded-xl border border-sky-400/25">
+      <div className="relative h-44 overflow-hidden rounded-2xl border border-sky-300/20">
         {/* eslint-disable-next-line @next/next/no-img-element -- local polaris still */}
         <img src="/polaris/premium-3-sky.jpg" alt="" className="h-full w-full object-cover object-[center_30%]" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0B0A0F] via-[#0B0A0F]/55 to-[#0B0A0F]/20" />
-        <h2 className="absolute bottom-3 left-4 text-xl text-white">Mountains</h2>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#07111F]/88 via-[#07111F]/45 to-transparent" />
+        <MountainBeacon />
+        <div className="absolute bottom-4 left-5">
+          <p className="text-[11px] text-amber-200">Stage 1 to Stage 3</p>
+          <h2 className="text-2xl text-white">Mountains</h2>
+        </div>
       </div>
       <section>
         <p className="max-w-2xl text-sm text-fg-muted">Three stages. Prize text is proposed. Seed windows are not announced dates. Prize pool {h.prizePool}.</p>
@@ -26,7 +31,7 @@ export default async function StagesPage() {
             const prizes = h.prizes.filter((p) => p.title.toLowerCase().startsWith(s.name.toLowerCase()))
             const total = s.criteria.reduce((sum, c) => sum + c.weight, 0) || 1
             return (
-              <li key={s.id} className="rounded-xl border border-line p-5">
+              <li key={s.id} className="rounded-xl border border-sky-300/15 bg-[#0F2137]/80 p-5 shadow-[inset_0_1px_0_rgba(186,230,253,0.18)] motion-safe:transition motion-safe:duration-300 motion-safe:hover:-translate-y-1">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-lg text-fg-heading">Stage {i + 1}: {s.name}</h3>
                   <StageStateBadge state={stageState(s, now)} />

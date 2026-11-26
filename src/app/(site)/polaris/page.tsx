@@ -78,7 +78,7 @@ export default async function PolarisLivePage({ searchParams }: { searchParams: 
           <h2 className="text-lg text-fg-heading">Town hall</h2>
           <span className="rounded-full border border-sky-400/30 px-2 py-0.5 text-[10px] tracking-[0.12em] text-sky-300">Town hall</span>
         </div>
-        <div className="rounded-xl border border-sky-400/20">
+        <div className="rounded-xl border border-sky-300/15 bg-[#0F2137]/80 shadow-[inset_0_1px_0_rgba(186,230,253,0.16)]">
           {notes.length === 0 && <p className="px-4 py-3 text-sm text-fg-muted">No announcements in the seed.</p>}
           {notes.map((n, i) => (
             <div key={n.title} className={i === 0 ? 'px-4 py-3' : 'border-t border-line px-4 py-3'}>
@@ -113,7 +113,7 @@ export default async function PolarisLivePage({ searchParams }: { searchParams: 
 
       <section>
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-lg text-fg-heading">Newest dens</h2>
+          <h2 className="text-lg text-fg-heading">Tundra · Newest dens</h2>
           <p className="text-xs text-fg-muted">{dens.total} dens · {DENS_PAGE_SIZE} per page</p>
         </div>
         <div className="mt-3 flex gap-2 overflow-x-auto pb-1 text-xs">
@@ -134,7 +134,7 @@ export default async function PolarisLivePage({ searchParams }: { searchParams: 
             const label = badge(ctx.h.stages, row, now)
             const kind: Standing | 'stage2' = label.startsWith('Not advanced · Stage 2') ? 'stage2' : (standingsFor(ctx.h.stages, row.entries, 'active', now)[0]?.standing ?? 'missed')
             return (
-              <li key={row.id} className="rounded-xl border border-sky-400/15 bg-surface-1 p-4">
+              <li key={row.id} className="rounded-xl border border-sky-300/15 bg-[#0F2137]/80 p-4 shadow-[inset_0_1px_0_rgba(186,230,253,0.18)] motion-safe:transition motion-safe:duration-300 motion-safe:hover:-translate-y-1 motion-safe:hover:shadow-[0_18px_36px_rgba(4,12,28,0.45),inset_0_1px_0_rgba(186,230,253,0.35)]">
                 <div className="flex items-start justify-between gap-2">
                   <Igloo />
                   {open && <span className="text-[10px] tracking-[0.12em] text-sky-300">Open seat</span>}
@@ -158,7 +158,7 @@ export default async function PolarisLivePage({ searchParams }: { searchParams: 
           <h2 className="text-lg text-fg-heading">Review queue</h2>
           <Link href="/polaris/review" className="text-xs text-sky-300 underline-offset-2 hover:underline">Full queue, 25 per page</Link>
         </div>
-        <div className="overflow-x-auto rounded-xl border border-sky-400/20">
+        <div className="overflow-x-auto rounded-xl border border-sky-300/15 bg-[#0F2137]/80 shadow-[inset_0_1px_0_rgba(186,230,253,0.16)]">
           <table className="w-full text-left text-sm">
             <thead className="text-xs text-fg-muted"><tr><th className="px-3 py-2 font-medium">Den</th><th className="px-3 py-2 font-medium">Track</th><th className="px-3 py-2 font-medium">Stage</th><th className="px-3 py-2 font-medium">Standing</th><th className="px-3 py-2 font-medium">Note</th></tr></thead>
             <tbody>
@@ -180,13 +180,16 @@ export default async function PolarisLivePage({ searchParams }: { searchParams: 
         </div>
       </section>
 
-      <section className="flex items-center gap-3 rounded-xl border border-sky-400/20 bg-surface-1 px-4 py-3">
-        <PawPrint className="size-5 shrink-0 text-sky-300" aria-hidden />
-        <div>
-          <p className="text-sm text-fg-heading">Polar Bears International</p>
-          <p className="text-xs text-fg-muted">Conservation motif, not a sponsor slot.</p>
+      <footer className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-sky-300/20 pt-5">
+        <div className="flex items-center gap-3">
+          <PawPrint className="size-5 shrink-0 text-amber-200" aria-hidden />
+          <div>
+            <p className="text-sm text-sky-50">Polar Bears International</p>
+            <p className="text-xs text-sky-100/70">Conservation motif, not a sponsor slot.</p>
+          </div>
         </div>
-      </section>
+        <p className="text-[11px] text-sky-100/50">Local seed. Not an announced event.</p>
+      </footer>
     </div>
   )
 }
