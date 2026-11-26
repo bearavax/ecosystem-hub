@@ -3,7 +3,6 @@ import type { CurrentUser } from '@/lib/session'
 import type { getMySubmissions, PublicHackathon } from '@/app/(site)/events/_lib/hackathons/queries'
 import { advancedStageIds, pickOpenStage, stageState } from '@/app/(site)/events/_lib/hackathons/rules'
 import { STANDING_LABEL, standingsFor } from '../_lib/rules'
-import { HeroScene } from './hero-scene'
 
 type Mine = Awaited<ReturnType<typeof getMySubmissions>>
 
@@ -30,9 +29,9 @@ export function Aurora({ h, user, mine }: { h: PublicHackathon; user: CurrentUse
   const mineStanding = user && mine[0] ? standingsFor(h.stages, mine[0].entries, mine[0].status, now) : null
   const yours = mineStanding?.find((r) => r.standing === 'can_submit' || r.standing === 'submitted' || r.standing === 'in_review') ?? mineStanding?.[0]
   return (
-    <header className="relative h-[280px] overflow-hidden rounded-2xl border border-sky-300/20 md:h-[300px]">
-      <HeroScene />
-      <div className="relative flex h-full flex-col justify-end px-6 py-6 sm:px-8 sm:py-7">
+    <header className="relative min-h-[320px] overflow-hidden rounded-2xl border border-sky-300/20 md:h-[300px] md:min-h-0">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#07111F]/88 via-[#07111F]/55 to-transparent" />
+      <div className="relative flex h-full flex-col justify-end px-6 pb-6 pt-8 sm:px-8 sm:pb-7">
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full border border-sky-300/30 bg-[#07111F]/40 px-2.5 py-1 text-[11px] text-sky-100">Avalanche C-Chain · Global builder journey</span>
           <span className="rounded-full border border-white/15 bg-[#07111F]/40 px-2.5 py-1 text-[11px] text-sky-100/80">Dates TBC</span>

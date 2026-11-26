@@ -4,18 +4,9 @@ import { Flag, PawPrint } from 'lucide-react'
 import { stageState } from '@/app/(site)/events/_lib/hackathons/rules'
 import { PageHeader } from '@/components/layout/page-header'
 import { DENS_PAGE_SIZE, STANDING_LABEL, hasOpenSeat, standingsFor, townHallLines, type Standing } from './_lib/rules'
+import { IglooEmblem } from './_components/igloo-emblem'
 import { listAround, listDens, loadPolarisContext, type DenRow } from './_lib/queries'
 import { pageParam, textParam } from '@/lib/params'
-
-function Igloo() {
-  return (
-    <svg viewBox="0 0 32 32" className="size-7 text-sky-300" aria-hidden>
-      <path fill="currentColor" d="M6 20c0-6 4.5-11 10-11s10 5 10 11v2H6v-2z" opacity=".9" />
-      <path fill="currentColor" d="M14 22h4v4h-4z" />
-      <path stroke="currentColor" strokeWidth="1" d="M8 18h16M11 14h10" opacity=".7" />
-    </svg>
-  )
-}
 
 function pillClass(standing: Standing | 'stage2') {
   if (standing === 'submitted' || standing === 'advanced') return 'bg-emerald-500/15 text-emerald-300'
@@ -133,10 +124,11 @@ export default async function PolarisLivePage({ searchParams }: { searchParams: 
             const open = hasOpenSeat(row.project.members.length, ctx.h.teamSizeMax)
             const label = badge(ctx.h.stages, row, now)
             const kind: Standing | 'stage2' = label.startsWith('Not advanced · Stage 2') ? 'stage2' : (standingsFor(ctx.h.stages, row.entries, 'active', now)[0]?.standing ?? 'missed')
+            const tone = kind === 'stage2' || kind === 'not_advanced' ? 'rose' : open ? 'amber' : 'ice'
             return (
-              <li key={row.id} className="rounded-xl border border-sky-300/15 bg-[#0F2137]/80 p-4 shadow-[inset_0_1px_0_rgba(186,230,253,0.18)] motion-safe:transition motion-safe:duration-300 motion-safe:hover:-translate-y-1 motion-safe:hover:shadow-[0_18px_36px_rgba(4,12,28,0.45),inset_0_1px_0_rgba(186,230,253,0.35)]">
+              <li key={row.id} className="rounded-xl border border-sky-300/15 bg-[#091526]/78 p-4 shadow-[inset_0_1px_0_rgba(186,230,253,0.18)] backdrop-blur-md motion-safe:transition motion-safe:duration-300 motion-safe:hover:-translate-y-1 motion-safe:hover:shadow-[0_18px_36px_rgba(4,12,28,0.45),inset_0_1px_0_rgba(186,230,253,0.35)]">
                 <div className="flex items-start justify-between gap-2">
-                  <Igloo />
+                  <IglooEmblem tone={tone} />
                   {open && <span className="text-[10px] tracking-[0.12em] text-sky-300">Open seat</span>}
                 </div>
                 <h3 className="mt-3 text-fg-heading">{row.project.currentVersion?.name ?? 'Untitled'}</h3>

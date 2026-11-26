@@ -59,7 +59,7 @@ export function PolarisFrame({ header, children }: { header: ReactNode; children
     <div className="mx-auto w-full max-w-[1280px] px-4 py-4">
       {header}
       <div className="mt-4 flex items-start gap-6">
-        <aside className="sticky top-20 hidden w-60 shrink-0 rounded-xl border border-sky-300/15 bg-[#0F2137]/80 p-3 shadow-[inset_0_1px_0_rgba(186,230,253,0.2)] motion-safe:[transform:perspective(900px)_rotateY(3deg)] motion-safe:transition motion-safe:hover:[transform:perspective(900px)_rotateY(0deg)] md:block">
+        <aside className="sticky top-20 hidden w-60 shrink-0 rounded-xl border border-sky-300/15 bg-[#091526]/78 p-3 shadow-[inset_0_1px_0_rgba(186,230,253,0.2)] backdrop-blur-md motion-safe:[transform:perspective(900px)_rotateY(3deg)] motion-safe:transition motion-safe:hover:[transform:perspective(900px)_rotateY(0deg)] md:block">
           <NavList />
         </aside>
         {open && (

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { stageState } from '@/app/(site)/events/_lib/hackathons/rules'
 import { StageStateBadge } from '@/components/stage-state-badge'
 import { formatEventRange } from '@/lib/dates'
-import { MountainBeacon } from '../_components/mountain-beacon'
+import { SvalbardPeak } from '../_components/svalbard-world'
 import { loadPolarisContext } from '../_lib/queries'
 
 export const metadata: Metadata = { title: 'Polaris stages' }
@@ -15,10 +15,8 @@ export default async function StagesPage() {
   return (
     <div className="space-y-12">
       <div className="relative h-44 overflow-hidden rounded-2xl border border-sky-300/20">
-        {/* eslint-disable-next-line @next/next/no-img-element -- local polaris still */}
-        <img src="/polaris/premium-3-sky.jpg" alt="" className="h-full w-full object-cover object-[center_30%]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#07111F]/88 via-[#07111F]/45 to-transparent" />
-        <MountainBeacon />
+        <SvalbardPeak />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#07111F]/80 via-[#07111F]/35 to-transparent" />
         <div className="absolute bottom-4 left-5">
           <p className="text-[11px] text-amber-200">Stage 1 to Stage 3</p>
           <h2 className="text-2xl text-white">Mountains</h2>
