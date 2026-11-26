@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { polarisHover, polarisShot, polarisStage, pushPins } from './camera-store'
 import { publishIgloos, type IglooTone, type IglooUrls } from './igloo-store'
 
 type ThreeNS = typeof import('three')
@@ -262,6 +263,8 @@ function makeIgloo(THREE: ThreeNS, tint: number, lampDistance = 1.05) {
   group.add(hearth)
   const lamp = new THREE.PointLight(0xffb454, 0.55, lampDistance)
   lamp.position.set(0, 0.18, 0.78)
+  lamp.userData.hearth = true
+  lamp.userData.base = 0.55
   group.add(lamp)
   return group
 }
@@ -529,7 +532,6 @@ function mount(THREE: ThreeNS, host: HTMLElement, mode: 'world' | 'peak', reduce
   let t = 0
   let mx = 0
   let my = 0
-  const base = camera.position.clone()
   const resize = () => {
     const box = host.getBoundingClientRect()
     const w = Math.max(1, box.width)
@@ -538,11 +540,78 @@ function mount(THREE: ThreeNS, host: HTMLElement, mode: 'world' | 'peak', reduce
     camera.updateProjectionMatrix()
     renderer.setSize(w, h, false)
   }
+  const goal = new THREE.Vector3()
+  const gaze = new THREE.Vector3()
+  const hearths: import('three').PointLight[] = []
+  const pinVec = new THREE.Vector3()
+  const anchors: { id: string; at: import('three').Vector3 }[] = []
+  const fly = (key: string) => {
+    const stage = polarisStage()
+    const shots: Record<string, [[number, number, number], [number, number, number]]> = {
+      overview: [[22, 7.5, 16], [-2, -2, -12]],
+      dens: [[18, 6.4, 2], [12, 5.1, -8]],
+      den: [[18, 6.4, 2], [12, 5.1, -8]],
+      lodge: [[15, 6, 6], [11, 5.2, -5]],
+      stars: [[2, 18, 4], [-4, 26, -16]],
+      submit: [[8, 8.2, -2], [3, 8, -16]],
+      review: [[22, 7.5, 16], [-2, -2, -12]],
+      'stages-0': [[16, 6.6, 1], [12, 5.4, -9]],
+      'stages-1': [[6, 9.2, -2], [2, 8.4, -18]],
+      'stages-2': [[0, 12.4, -12], [-2, 13, -24]],
+    }
+    const picked = key === 'stages' ? shots[`stages-${stage}`]! : shots[key] ?? shots.overview!
+    goal.set(...picked[0])
+    gaze.set(...picked[1])
+  }
+  fly('overview')
+  camera.position.copy(goal)
+  look.copy(gaze)
+  const snowCount = 420
+  const snowGeo = new THREE.BufferGeometry()
+  const snowPos = new Float32Array(snowCount * 3)
+  for (let i = 0; i < snowCount; i++) {
+    snowPos[i * 3] = (Math.random() - 0.5) * 46 + 6
+    snowPos[i * 3 + 1] = Math.random() * 16
+    snowPos[i * 3 + 2] = (Math.random() - 0.5) * 46 - 4
+  }
+  snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3))
+  const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.07, transparent: true, opacity: 0.5, depthWrite: false }))
+  if (mode === 'world') scene.add(snow)
   const draw = () => {
-    const sway = reduce ? 0 : Math.sin(t * 0.1) * (mode === 'peak' ? 0.08 : 0.16)
-    camera.position.x = base.x + sway + mx * 0.12
-    camera.position.y = base.y + my * 0.08
-    camera.lookAt(look)
+    if (mode === 'world') {
+      fly(polarisShot())
+      const step = reduce ? 1 : 0.045
+      camera.position.lerp(goal, step)
+      look.lerp(gaze, step)
+      if (!reduce) {
+        camera.position.x += Math.sin(t * 0.1) * 0.12 + mx * 0.18
+        camera.position.y += my * 0.08
+      }
+      camera.lookAt(look)
+      if (!reduce) {
+        const pos = snowGeo.attributes.position!
+        for (let i = 0; i < snowCount; i++) {
+          const y = pos.getY(i) - 0.015
+          pos.setY(i, y < 0 ? 16 : y)
+        }
+        pos.needsUpdate = true
+      }
+      const box = renderer.domElement.getBoundingClientRect()
+      pushPins(anchors.map((anchor) => {
+        pinVec.copy(anchor.at).project(camera)
+        return {
+          id: anchor.id,
+          x: (pinVec.x * 0.5 + 0.5) * box.width,
+          y: (-pinVec.y * 0.5 + 0.5) * box.height,
+          visible: pinVec.z < 1,
+        }
+      }))
+    }
+    hearths.forEach((light, index) => {
+      const flick = reduce ? 1 : 0.82 + Math.sin(t * 7 + index) * 0.18
+      const hot = polarisHover() === index ? 2.6 : 1
+      light.intensity = Number(light.userData.base) * flick * hot
+    })
     if (!reduce) {
       twinkleMat.uniforms.uTime!.value = t
       for (const mat of auroraMats) mat.uniforms.uTime!.value = t
@@ -585,14 +654,42 @@ function mount(THREE: ThreeNS, host: HTMLElement, mode: 'world' | 'peak', reduce
     scene.add(water)
     if (mode === 'world') {
       const spots: [number, number][] = [[14, -9.8], [9.1, -1.4], [10.5, -5.6], [11.2, -7.7], [13.3, -7.7], [12.6, -13.3]]
-      for (const [x, z] of spots) {
+      spots.forEach(([x, z], index) => {
         const y = worldHeight(map, x, z, size, lift) + 0.06
         const igloo = makeIgloo(THREE, 0xf7fbff, 0.42)
         igloo.position.set(x, y, z)
-        igloo.rotation.y = Math.atan2(camera.position.x - x, camera.position.z - z)
+        igloo.rotation.y = Math.atan2(18 - x, 2 - z)
         igloo.scale.setScalar(0.85)
+        igloo.traverse((child) => {
+          const light = child as import('three').PointLight
+          if (light.isPointLight && light.userData.hearth) {
+            light.userData.index = index
+            hearths.push(light)
+          }
+        })
         scene.add(igloo)
-      }
+        if (index === 2) anchors.push({ id: 'lodge', at: igloo.position })
+      })
+      const trail = [[12, -8], [4, -16], [-2, -24]].map(([x, z]) => new THREE.Vector3(x, worldHeight(map, x, z, size, lift) + 1.1, z))
+      trail.forEach((at, index) => {
+        const beacon = new THREE.Mesh(
+          new THREE.SphereGeometry(0.18, 16, 16),
+          new THREE.MeshBasicMaterial({ color: index === 1 ? 0xfbbf24 : 0x7dd3fc }),
+        )
+        beacon.position.copy(at)
+        scene.add(beacon)
+        scene.add(new THREE.PointLight(index === 1 ? 0xf59e0b : 0x38bdf8, 0.6, 6).translateX(at.x).translateY(at.y).translateZ(at.z))
+      })
+      const ribbonTrail = new THREE.Mesh(
+        new THREE.TubeGeometry(new THREE.CatmullRomCurve3(trail), 48, 0.06, 8, false),
+        new THREE.MeshBasicMaterial({ color: 0x5eead4, transparent: true, opacity: 0.7 }),
+      )
+      scene.add(ribbonTrail)
+      anchors.push(
+        { id: 'camp', at: new THREE.Vector3(12, worldHeight(map, 12, -8, size, lift) + 2.2, -8) },
+        { id: 'mountains', at: trail[1]!.clone().setY(trail[1]!.y + 1.2) },
+        { id: 'purse', at: trail[2]!.clone().setY(trail[2]!.y + 1.6) },
+      )
       bakeIgloos(THREE, renderer)
     }
     draw()

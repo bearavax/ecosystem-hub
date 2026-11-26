@@ -167,6 +167,10 @@ export async function listDens(hackathonId: string, opts: { page: number; pageSi
   return { rows: found, hasMore: ids.length > pageSize, total: Number(totalRows[0]?.n ?? 0) }
 }
 
+export function countDens(hackathonId: string) {
+  return prisma.submission.count({ where: { hackathonId, status: 'active' } })
+}
+
 export async function listAround(hackathonId: string) {
   return prisma.participant.findMany({
     where: { hackathonId, status: 'active' },

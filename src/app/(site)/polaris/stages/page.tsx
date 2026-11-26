@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { stageState } from '@/app/(site)/events/_lib/hackathons/rules'
 import { StageStateBadge } from '@/components/stage-state-badge'
 import { formatEventRange } from '@/lib/dates'
-import { SvalbardPeak } from '../_components/svalbard-world'
 import { formatPurse, stagePurse } from '../_lib/rules'
 import { loadPolarisContext } from '../_lib/queries'
 
@@ -17,15 +17,7 @@ export default async function StagesPage() {
   const pool = purses.reduce((sum, purse) => sum + purse.total, 0)
   const awards = purses.reduce((sum, purse) => sum + purse.awards, 0)
   return (
-    <div className="space-y-12">
-      <div className="relative h-56 overflow-hidden rounded-xl">
-        <SvalbardPeak />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_12%_70%,rgba(3,8,18,0.72)_0%,rgba(3,8,18,0.2)_38%,transparent_62%)]" />
-        <div className="absolute bottom-4 left-5">
-          <p className="text-[11px] text-amber-200">Stage 1 to Stage 3</p>
-          <h2 className="text-2xl text-white">Mountains</h2>
-        </div>
-      </div>
+    <div className="space-y-6 text-white">
       <section>
         <p className="max-w-3xl text-sm text-fg-muted">
           ${pool.toLocaleString('en-US')} proposed across {awards} awards ({purses.map((purse) => `${formatPurse(purse.total).replace(' proposed', '')} ${purse.name}`).join(' · ')}). Every figure is proposed. Dates TBC. Seed windows are not announced dates.
@@ -37,7 +29,7 @@ export default async function StagesPage() {
             return (
               <li key={s.id} className="rounded-xl border border-sky-300/15 bg-[#0F2137]/80 p-5 shadow-[inset_0_1px_0_rgba(186,230,253,0.18)] motion-safe:transition motion-safe:duration-300 motion-safe:hover:-translate-y-1">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-lg text-fg-heading">Stage {i + 1}: {s.name}</h3>
+                  <h3 className="text-lg text-white"><Link href={`/polaris/stages?stage=${i}`} className="hover:text-sky-100">Stage {i + 1}: {s.name}</Link></h3>
                   <StageStateBadge state={stageState(s, now)} />
                 </div>
                 <p className="mt-2 text-sm text-fg-muted">Seed window {formatEventRange(s.opensAt, s.closesAt, h.timezone)}</p>

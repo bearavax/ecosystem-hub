@@ -7,7 +7,7 @@ import { PolarisMast } from './mast'
 
 type Mine = Awaited<ReturnType<typeof getMySubmissions>>
 
-function actionFor(h: PublicHackathon, user: CurrentUser | null, mine: Mine, now: Date): { href?: string; label: string } {
+export function polarisAction(h: PublicHackathon, user: CurrentUser | null, mine: Mine, now: Date): { href?: string; label: string } {
   const open = h.stages[pickOpenStage(h.stages, now, advancedStageIds(mine))]
   if (!user) return { href: '/sign-in?next=/events/polaris/join', label: 'Register' }
   if (!h.joined) {
@@ -24,7 +24,7 @@ const shortState = { open: 'Open', judging: 'Judging', upcoming: 'Upcoming', clo
 
 export function Aurora({ h, user, mine }: { h: PublicHackathon; user: CurrentUser | null; mine: Mine }) {
   const now = new Date()
-  const action = actionFor(h, user, mine, now)
+  const action = polarisAction(h, user, mine, now)
   const current = h.stages.find((s) => stageState(s, now) === 'open') ?? h.stages.find((s) => stageState(s, now) === 'upcoming') ?? h.stages.at(-1)
   const index = current ? h.stages.findIndex((s) => s.id === current.id) : -1
   const state = current ? stageState(current, now) : null
