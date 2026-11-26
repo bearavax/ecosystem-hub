@@ -147,13 +147,34 @@ const AURORA_FRAG = `
     float rays = 0.62 + 0.38 * sin(x * 36.0 + uTime * 0.15 + uShift);
     float side = smoothstep(0.0, 0.16, x) * (1.0 - smoothstep(0.84, 1.0, x));
     float body = smoothstep(0.0, 0.2, y) * (1.0 - smoothstep(0.62, 0.98, y));
-    float alpha = side * body * rays * 0.34;
+    float alpha = side * body * rays * 0.55;
     vec3 emerald = vec3(0.204, 0.827, 0.600);
     vec3 cyan = vec3(0.220, 0.741, 0.973);
     vec3 violet = vec3(0.506, 0.549, 0.973);
     vec3 col = mix(emerald, cyan, smoothstep(0.12, 0.55, x));
     col = mix(col, violet, smoothstep(0.5, 0.95, x) * 0.7);
     gl_FragColor = vec4(col, alpha);
+  }
+`
+
+const TWINKLE_VERT = `
+  attribute float phase;
+  uniform float uTime;
+  varying float vTwinkle;
+  void main() {
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    gl_PointSize = 1.7;
+    vTwinkle = 0.28 + 0.72 * (0.5 + 0.5 * sin(uTime * 1.6 + phase));
+  }
+`
+
+const TWINKLE_FRAG = `
+  varying float vTwinkle;
+  void main() {
+    float d = length(gl_PointCoord - 0.5);
+    if (d > 0.5) discard;
+    float alpha = smoothstep(0.5, 0.08, d) * vTwinkle;
+    gl_FragColor = vec4(0.94, 0.97, 1.0, alpha);
   }
 `
 
@@ -433,6 +454,32 @@ function mount(THREE: ThreeNS, host: HTMLElement, mode: 'world' | 'peak', reduce
     starLayers.push(points)
   }
 
+  const twinkleCount = 300
+  const twinkleGeo = new THREE.BufferGeometry()
+  const twinklePos = new Float32Array(twinkleCount * 3)
+  const twinklePhase = new Float32Array(twinkleCount)
+  for (let i = 0; i < twinkleCount; i++) {
+    const phi = Math.acos(0.35 + Math.random() * 0.65)
+    const theta = Math.random() * Math.PI * 2
+    const radius = 58 + Math.random() * 8
+    twinklePos[i * 3] = radius * Math.sin(phi) * Math.cos(theta)
+    twinklePos[i * 3 + 1] = radius * Math.cos(phi) + 6
+    twinklePos[i * 3 + 2] = radius * Math.sin(phi) * Math.sin(theta)
+    twinklePhase[i] = Math.random() * Math.PI * 2
+  }
+  twinkleGeo.setAttribute('position', new THREE.BufferAttribute(twinklePos, 3))
+  twinkleGeo.setAttribute('phase', new THREE.BufferAttribute(twinklePhase, 1))
+  const twinkleMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: TWINKLE_VERT,
+    fragmentShader: TWINKLE_FRAG,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    fog: false,
+  })
+  scene.add(new THREE.Points(twinkleGeo, twinkleMat))
+
   const auroraMats: import('three').ShaderMaterial[] = []
   const ribbon = mode === 'peak'
     ? { x: 0, y: 8.2, z: -12, w: 28, h: 7, shift: 0.4, tilt: -0.55 }
@@ -497,6 +544,7 @@ function mount(THREE: ThreeNS, host: HTMLElement, mode: 'world' | 'peak', reduce
     camera.position.y = base.y + my * 0.08
     camera.lookAt(look)
     if (!reduce) {
+      twinkleMat.uniforms.uTime!.value = t
       for (const mat of auroraMats) mat.uniforms.uTime!.value = t
     }
     renderer.render(scene, camera)

@@ -3,6 +3,7 @@ import type { CurrentUser } from '@/lib/session'
 import type { getMySubmissions, PublicHackathon } from '@/app/(site)/events/_lib/hackathons/queries'
 import { advancedStageIds, pickOpenStage, stageState } from '@/app/(site)/events/_lib/hackathons/rules'
 import { STANDING_LABEL, standingsFor } from '../_lib/rules'
+import { PolarisMast } from './mast'
 
 type Mine = Awaited<ReturnType<typeof getMySubmissions>>
 
@@ -19,6 +20,7 @@ function actionFor(h: PublicHackathon, user: CurrentUser | null, mine: Mine, now
 }
 
 const stateLabel = { open: 'Open for submissions', judging: 'Judging', upcoming: 'Upcoming', closed: 'Closed' } as const
+const shortState = { open: 'Open', judging: 'Judging', upcoming: 'Upcoming', closed: 'Closed' } as const
 
 export function Aurora({ h, user, mine }: { h: PublicHackathon; user: CurrentUser | null; mine: Mine }) {
   const now = new Date()
@@ -28,30 +30,46 @@ export function Aurora({ h, user, mine }: { h: PublicHackathon; user: CurrentUse
   const state = current ? stageState(current, now) : null
   const mineStanding = user && mine[0] ? standingsFor(h.stages, mine[0].entries, mine[0].status, now) : null
   const yours = mineStanding?.find((r) => r.standing === 'can_submit' || r.standing === 'submitted' || r.standing === 'in_review') ?? mineStanding?.[0]
+  const stageLine = current && state ? `Stage ${index + 1}: ${current.name} · ${shortState[state]}` : 'Polaris'
+  const cta = action.href
+    ? <Link href={action.href} className="inline-flex h-11 items-center rounded-lg bg-gradient-to-b from-white to-sky-100 px-5 text-sm text-[#07111F] shadow-[0_0_28px_rgba(56,189,248,0.45)]">{action.label}</Link>
+    : <p className="text-sm text-sky-50">{action.label}</p>
   return (
-    <header className="relative min-h-[320px] md:h-[340px] md:min-h-0">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_16%_62%,rgba(3,8,18,0.8)_0%,rgba(3,8,18,0.38)_26%,rgba(3,8,18,0.08)_46%,transparent_64%)]" />
-      <div className="relative flex h-full flex-col justify-end px-6 pb-6 pt-8 sm:px-8 sm:pb-7">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-sky-300/30 bg-[#07111F]/40 px-2.5 py-1 text-[11px] text-sky-100">Avalanche C-Chain · Global builder journey</span>
-          <span className="rounded-full border border-white/15 bg-[#07111F]/40 px-2.5 py-1 text-[11px] text-sky-100/80">Dates TBC</span>
-        </div>
-        <h1 className="mt-3 text-5xl tracking-[-0.03em] text-white sm:text-6xl">Polaris</h1>
-        <p className="mt-2 max-w-xl text-sm text-sky-50/90 sm:text-base">A three-stage global builder journey from Tundra camp to Mountains to Stars.</p>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          {current && state && (
-            <span className="rounded-full border border-sky-300/40 bg-sky-400/15 px-3 py-1 text-xs text-sky-50">
-              Stage {index + 1}: {current.name} · {stateLabel[state]}
-            </span>
-          )}
-          {yours && <span className="rounded-full border border-amber-200/30 bg-amber-400/10 px-3 py-1 text-xs text-amber-100">Your standing: {STANDING_LABEL[yours.standing]}</span>}
+    <PolarisMast
+      full={(
+        <header className="relative min-h-[320px] md:h-[340px] md:min-h-0">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_16%_62%,rgba(3,8,18,0.8)_0%,rgba(3,8,18,0.38)_26%,rgba(3,8,18,0.08)_46%,transparent_64%)]" />
+          <div className="relative flex h-full flex-col justify-end px-6 pb-6 pt-8 sm:px-8 sm:pb-7">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-sky-300/30 bg-[#07111F]/40 px-2.5 py-1 text-[11px] text-sky-100">Avalanche C-Chain · Global builder journey</span>
+              <span className="rounded-full border border-white/15 bg-[#07111F]/40 px-2.5 py-1 text-[11px] text-sky-100/80">Dates TBC</span>
+            </div>
+            <h1 className="mt-3 text-5xl tracking-[-0.03em] text-white sm:text-6xl">Polaris</h1>
+            <p className="mt-2 max-w-xl text-sm text-sky-50/90 sm:text-base">A three-stage global builder journey from Tundra camp to Mountains to Stars.</p>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              {current && state && (
+                <span className="rounded-full border border-sky-300/40 bg-sky-400/15 px-3 py-1 text-xs text-sky-50">
+                  Stage {index + 1}: {current.name} · {stateLabel[state]}
+                </span>
+              )}
+              {yours && <span className="rounded-full border border-amber-200/30 bg-amber-400/10 px-3 py-1 text-xs text-amber-100">Your standing: {STANDING_LABEL[yours.standing]}</span>}
+              {cta}
+              <Link href="/polaris/stages" className="inline-flex h-11 items-center rounded-full border border-white/20 bg-white/10 px-4 text-sm text-sky-50 backdrop-blur-md hover:bg-white/15">Explore stages →</Link>
+            </div>
+          </div>
+        </header>
+      )}
+      compact={(
+        <header className="flex h-24 items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#071324]/78 px-4 backdrop-blur-md">
+          <div className="min-w-0">
+            <p className="text-lg text-white">Polaris</p>
+            <p className="truncate text-xs text-sky-100">{stageLine}</p>
+          </div>
           {action.href ? (
-            <Link href={action.href} className="inline-flex h-11 items-center rounded-lg bg-gradient-to-b from-white to-sky-100 px-5 text-sm text-[#07111F] shadow-[0_0_28px_rgba(56,189,248,0.45)]">{action.label}</Link>
+            <Link href={action.href} className="inline-flex h-10 shrink-0 items-center rounded-lg bg-gradient-to-b from-white to-sky-100 px-4 text-sm text-[#07111F]">{action.label}</Link>
           ) : <p className="text-sm text-sky-50">{action.label}</p>}
-          <Link href="#journey" className="inline-flex h-11 items-center text-sm text-sky-100 hover:text-white">How it works</Link>
-          <Link href="/polaris/stages" className="inline-flex h-11 items-center text-sm text-amber-200 hover:text-amber-100">Explore stages</Link>
-        </div>
-      </div>
-    </header>
+        </header>
+      )}
+    />
   )
 }

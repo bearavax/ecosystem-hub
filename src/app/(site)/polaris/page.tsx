@@ -185,9 +185,12 @@ export default async function PolarisLivePage({ searchParams }: { searchParams: 
             )
           })}
         </ul>
-        <div className="mt-3 flex gap-3 text-sm">
-          {page > 1 && <Link href={href({ page: String(page - 1) })} className="text-fg-heading underline-offset-2 hover:underline">Previous</Link>}
-          {dens.hasMore && <Link href={href({ page: String(page + 1) })} className="text-fg-heading underline-offset-2 hover:underline">Next</Link>}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-fg-muted">Page {page} of {Math.max(1, Math.ceil(dens.total / DENS_PAGE_SIZE))}</p>
+          <div className="flex gap-2">
+            {page > 1 && <Link href={href({ page: String(page - 1) })} className="inline-flex h-11 items-center rounded-lg border border-white/15 bg-[#071324]/78 px-4 text-sm text-sky-50 backdrop-blur-md">Previous</Link>}
+            {dens.hasMore && <Link href={href({ page: String(page + 1) })} className="inline-flex h-11 items-center rounded-lg border border-white/15 bg-[#071324]/78 px-4 text-sm text-sky-50 backdrop-blur-md">Next →</Link>}
+          </div>
         </div>
       </section>
 

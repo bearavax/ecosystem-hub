@@ -3,6 +3,7 @@ import { stageState } from '@/app/(site)/events/_lib/hackathons/rules'
 import { StageStateBadge } from '@/components/stage-state-badge'
 import { formatEventRange } from '@/lib/dates'
 import { SvalbardPeak } from '../_components/svalbard-world'
+import { formatPurse, stagePurse } from '../_lib/rules'
 import { loadPolarisContext } from '../_lib/queries'
 
 export const metadata: Metadata = { title: 'Polaris stages' }
@@ -12,6 +13,9 @@ export default async function StagesPage() {
   if (!ctx) return null
   const now = new Date()
   const { h } = ctx
+  const purses = h.stages.map((stage) => ({ name: stage.name, ...stagePurse(h.prizes, stage.name) }))
+  const pool = purses.reduce((sum, purse) => sum + purse.total, 0)
+  const awards = purses.reduce((sum, purse) => sum + purse.awards, 0)
   return (
     <div className="space-y-12">
       <div className="relative h-56 overflow-hidden rounded-xl">
@@ -23,7 +27,9 @@ export default async function StagesPage() {
         </div>
       </div>
       <section>
-        <p className="max-w-2xl text-sm text-fg-muted">Three stages. Prize text is proposed. Seed windows are not announced dates. Prize pool {h.prizePool}.</p>
+        <p className="max-w-3xl text-sm text-fg-muted">
+          ${pool.toLocaleString('en-US')} proposed across {awards} awards ({purses.map((purse) => `${formatPurse(purse.total).replace(' proposed', '')} ${purse.name}`).join(' · ')}). Every figure is proposed. Dates TBC. Seed windows are not announced dates.
+        </p>
         <ol className="mt-6 grid gap-4">
           {h.stages.map((s, i) => {
             const prizes = h.prizes.filter((p) => p.title.toLowerCase().startsWith(s.name.toLowerCase()))
@@ -46,17 +52,22 @@ export default async function StagesPage() {
                   ))}
                 </ul>
                 {s.showCriteria && s.criteria.length > 0 && (
-                  <table className="mt-4 w-full max-w-lg text-left text-sm">
-                    <thead className="text-fg-muted"><tr><th className="py-1 font-medium">Criterion</th><th className="py-1 text-right font-medium">Weight</th></tr></thead>
-                    <tbody>
-                      {s.criteria.map((c) => (
-                        <tr key={c.id} className="border-t border-line">
-                          <td className="py-2 text-fg-heading">{c.name}</td>
-                          <td className="py-2 text-right text-fg-body">{c.weight} · {Math.round((c.weight / total) * 100)}%</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <ul className="mt-4 max-w-lg space-y-3 text-sm">
+                    {s.criteria.map((c) => {
+                      const pct = Math.round((c.weight / total) * 100)
+                      return (
+                        <li key={c.id}>
+                          <div className="flex items-baseline justify-between gap-3">
+                            <span className="text-fg-heading">{c.name}</span>
+                            <span className="text-fg-body">{c.weight} · {pct}%</span>
+                          </div>
+                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+                            <div className="h-full rounded-full bg-sky-300 shadow-[0_0_12px_rgba(125,211,252,0.85)]" style={{ width: `${pct}%` }} />
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
                 )}
               </li>
             )

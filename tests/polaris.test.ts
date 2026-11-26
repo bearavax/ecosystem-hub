@@ -102,6 +102,7 @@ test('stage purses add the seeded proposed places, including a placement range',
   assert.deepEqual(stagePurse(prizes, 'Finale'), { total: 95000, awards: 5 })
   assert.equal(formatPurse(30000), '$30K proposed')
   assert.equal(stagePurse(prizes, 'Hackathon').total + stagePurse(prizes, 'Accelerator').total + stagePurse(prizes, 'Finale').total, 200000)
+  assert.equal(stagePurse(prizes, 'Hackathon').awards + stagePurse(prizes, 'Accelerator').awards + stagePurse(prizes, 'Finale').awards, 40)
 })
 
 test('town hall lines come only from marked seed text, and open seats follow the team cap', () => {
