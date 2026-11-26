@@ -8,12 +8,12 @@ import { weightedTotal } from '@/app/(site)/events/_lib/hackathons/judging'
 
 const at = (iso: string) => new Date(iso)
 const TRACKS = [
-  { id: 'polaris_track_open', name: 'Open', sponsor: 'Sponsor A', order: 0 },
-  { id: 'polaris_track_ai', name: 'AI apps', sponsor: 'Sponsor B', order: 1 },
-  { id: 'polaris_track_payments', name: 'Payments', sponsor: 'Sponsor C', order: 2 },
-  { id: 'polaris_track_gaming', name: 'Gaming', sponsor: 'Sponsor D', order: 3 },
-  { id: 'polaris_track_lifestyle', name: 'Lifestyle', sponsor: 'Sponsor E', order: 4 },
-  { id: 'polaris_track_social', name: 'Social', sponsor: 'Sponsor F', order: 5 },
+  { id: 'polaris_track_gaming', name: 'Gaming', sponsor: 'Sponsor A', order: 0 },
+  { id: 'polaris_track_social', name: 'Social & Creator', sponsor: 'Sponsor B', order: 1 },
+  { id: 'polaris_track_ai', name: 'AI Consumer', sponsor: 'Sponsor C', order: 2 },
+  { id: 'polaris_track_payments', name: 'Payments & Finance', sponsor: 'Sponsor D', order: 3 },
+  { id: 'polaris_track_lifestyle', name: 'Lifestyle & Real-World', sponsor: 'Sponsor E', order: 4 },
+  { id: 'polaris_track_open', name: 'Open Innovation', sponsor: 'Sponsor F', order: 5 },
 ] as const
 const S1 = [
   { id: 'polaris_c_clarity', name: 'Clarity', weight: 1, description: 'FAKE. Is the idea understandable?', order: 0 },
@@ -131,11 +131,11 @@ async function main() {
           id: 'polaris_hackathon',
           tagline: 'FAKE local test. Not a real hackathon.',
           aboutMd: [
-            'This row is fake seed data for a local test of a 4 month hackathon.',
-            'Dates, sponsors, judges and prizes are placeholders. Every prize amount says proposed.',
-            'Tundra: register and form a team. Mountains: Hackathon, Accelerator, Finale. Stars: published winners.',
-            'Sponsor A through Sponsor F each occupy the single sponsor slot on a track. A second sponsor cannot be stored.',
-          ].join('\n\n'),
+            'TOWNHALL|Workshops this week|Placeholder announcement. Time TBC.',
+            'TOWNHALL|Check the current stage|Placeholder announcement. Time TBC.',
+            '',
+            'FAKE seed. Dates, sponsors, judges and prizes are placeholders. Every prize amount says proposed.',
+          ].join('\n'),
           rulesMd: 'FAKE rules. One team per person. Stage 2 is open to teams that were not advanced. Stage 3 is not.',
           termsUrl: 'https://example.test/fake-polaris-terms',
           registrationOpensAt: at('2026-09-01T00:00:00Z'),
@@ -144,7 +144,7 @@ async function main() {
           teamSizeMax: 5,
           allowMultipleSubmissions: false,
           requireApproval: false,
-          prizePool: 'proposed',
+          prizePool: '$95,000 proposed',
           timezone: 'UTC',
           status: 'published',
           resultsPublishedAt: at('2026-11-01T00:00:00Z'),
@@ -176,8 +176,13 @@ async function main() {
           },
           prizes: {
             create: [
-              { id: 'polaris_prize_overall', placement: 1, title: 'Proposed 1st place', amount: 'proposed', description: 'FAKE. Not a real prize.', order: 0 },
-              { id: 'polaris_prize_open', trackId: 'polaris_track_open', placement: 1, title: 'Proposed track place', amount: 'proposed', description: 'FAKE. Not a real prize.', order: 1 },
+              { id: 'polaris_prize_hack', placement: 1, placementTo: 20, title: 'Hackathon place', amount: '$1,500 proposed', description: '20 places. Proposed.', order: 0 },
+              { id: 'polaris_prize_accel', placement: 1, placementTo: 15, title: 'Accelerator place', amount: '$5,000 proposed', description: '15 places. Proposed. Teams not advanced from stage 1 can enter. Repeat winners allowed.', order: 1 },
+              { id: 'polaris_prize_overall', placement: 1, title: 'Finale 1st', amount: '$45,000 proposed', description: 'Proposed. 50% up front. 8 finalists, 5 grand winners.', order: 2 },
+              { id: 'polaris_prize_f2', placement: 1, title: 'Finale 2nd', amount: '$25,000 proposed', description: 'Proposed. 50% up front.', order: 3 },
+              { id: 'polaris_prize_f3', placement: 1, title: 'Finale 3rd', amount: '$15,000 proposed', description: 'Proposed. 50% up front.', order: 4 },
+              { id: 'polaris_prize_f4', placement: 1, title: 'Finale 4th', amount: '$5,000 proposed', description: 'Proposed. 50% up front.', order: 5 },
+              { id: 'polaris_prize_f5', placement: 1, title: 'Finale 5th', amount: '$5,000 proposed', description: 'Proposed. 50% up front.', order: 6 },
             ],
           },
           organizers: { create: { id: 'polaris_org', email: 'organiser@polaris.example.test', userId: organiserId, termsAcceptedAt: at('2026-09-01T00:00:00Z') } },

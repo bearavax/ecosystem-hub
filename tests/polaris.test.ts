@@ -2,7 +2,7 @@ import { test } from 'vitest'
 import assert from 'node:assert/strict'
 import { canSubmitToStage } from '@/app/(site)/events/_lib/hackathons/submissions'
 import { weightedTotal } from '@/app/(site)/events/_lib/hackathons/judging'
-import { entryFilter, parseReviewQuery, stageStanding, standingsFor, STANDING_LABEL } from '@/app/(site)/polaris/_lib/rules'
+import { entryFilter, hasOpenSeat, parseReviewQuery, stageStanding, standingsFor, townHallLines, STANDING_LABEL } from '@/app/(site)/polaris/_lib/rules'
 
 const d = (s: string) => new Date(s)
 const NOW = d('2026-11-25T12:00:00Z')
@@ -85,4 +85,13 @@ test('review filters ignore unknown ids and a standing with no stage', () => {
   assert.deepEqual(entryFilter('hackathon', 'not_advanced'), { kind: 'not_advanced', stageId: 'hackathon' })
   assert.deepEqual(entryFilter(undefined, 'missing'), { kind: 'any' })
   assert.deepEqual(entryFilter('hackathon', 'any'), { kind: 'any' })
+})
+
+test('town hall lines come only from marked seed text, and open seats follow the team cap', () => {
+  assert.deepEqual(townHallLines('TOWNHALL|Workshops|Time TBC.\nHello\nTOWNHALL|Stage note|Placeholder.'), [
+    { title: 'Workshops', body: 'Time TBC.' },
+    { title: 'Stage note', body: 'Placeholder.' },
+  ])
+  assert.equal(hasOpenSeat(1, 5), true)
+  assert.equal(hasOpenSeat(5, 5), false)
 })

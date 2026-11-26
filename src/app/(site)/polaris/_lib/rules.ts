@@ -5,6 +5,22 @@ import { pageParam, textParam } from '@/lib/params'
 export const POLARIS_SLUG = 'polaris'
 
 export const POLARIS_PAGE_SIZE = 25
+export const DENS_PAGE_SIZE = 6
+
+/** Lines stored as `TOWNHALL|title|body` in Hackathon.aboutMd. No dates are invented. */
+export function townHallLines(aboutMd: string): { title: string; body: string }[] {
+  return aboutMd.split('\n').flatMap((line) => {
+    if (!line.startsWith('TOWNHALL|')) return []
+    const [, title, body] = line.split('|')
+    if (!title?.trim() || !body?.trim()) return []
+    return [{ title: title.trim(), body: body.trim() }]
+  })
+}
+
+/** A den has an open seat when the writing team is under the hackathon maximum. */
+export function hasOpenSeat(writers: number, teamSizeMax: number | null): boolean {
+  return teamSizeMax == null || writers < teamSizeMax
+}
 
 export const STANDING_FILTERS = ['any', 'missing', 'submitted', 'advanced', 'not_advanced'] as const
 export type StandingFilter = (typeof STANDING_FILTERS)[number]

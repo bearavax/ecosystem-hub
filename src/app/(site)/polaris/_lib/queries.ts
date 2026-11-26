@@ -1,8 +1,12 @@
 import 'server-only'
-import type { Prisma } from '@prisma/client'
+import { cache } from 'react'
+import { Prisma } from '@prisma/client'
+import { getMySubmissions, getPublicHackathon } from '@/app/(site)/events/_lib/hackathons/queries'
+import { getPublicEvent } from '@/app/(site)/events/_lib/queries'
 import { prisma } from '@/lib/db'
+import { getCurrentUser } from '@/lib/session'
 import { userSearchWhere } from '@/lib/user-search'
-import { POLARIS_PAGE_SIZE, type EntryFilter, type ReviewQuery, entryFilter } from './rules'
+import { DENS_PAGE_SIZE, POLARIS_PAGE_SIZE, POLARIS_SLUG, type EntryFilter, type ReviewQuery, type StandingFilter, entryFilter } from './rules'
 
 function entriesWhere(filter: EntryFilter): Prisma.StageEntryListRelationFilter | undefined {
   switch (filter.kind) {
@@ -88,4 +92,96 @@ export async function countSharedMembers(hackathonId: string): Promise<number> {
     ) d
   `
   return Number(rows[0]?.n ?? 0)
+}
+
+export const loadPolarisContext = cache(async () => {
+  const event = await getPublicEvent(POLARIS_SLUG)
+  if (!event) return null
+  const user = await getCurrentUser()
+  const h = await getPublicHackathon(event.id, user?.id ?? null)
+  if (!h) return null
+  const mine = user ? await getMySubmissions(h.id, user.id) : []
+  return { event, h, user, mine }
+})
+
+const denSelect = {
+  id: true,
+  trackIds: true,
+  project: {
+    select: {
+      currentVersion: { select: { name: true } },
+      members: { where: { role: { in: ['owner', 'writer'] } }, select: { id: true } },
+    },
+  },
+  entries: { select: { stageId: true, advancedAt: true } },
+} satisfies Prisma.SubmissionSelect
+
+export type DenRow = Prisma.SubmissionGetPayload<{ select: typeof denSelect }>
+
+function standingSql(filter: EntryFilter): Prisma.Sql {
+  switch (filter.kind) {
+    case 'any':
+      return Prisma.empty
+    case 'missing':
+      return Prisma.sql`AND NOT EXISTS (SELECT 1 FROM hackathon_stage_entries e WHERE e."submissionId" = s.id AND e."stageId" = ${filter.stageId})`
+    case 'submitted':
+      return Prisma.sql`AND EXISTS (SELECT 1 FROM hackathon_stage_entries e WHERE e."submissionId" = s.id AND e."stageId" = ${filter.stageId})`
+    case 'advanced':
+      return Prisma.sql`AND EXISTS (SELECT 1 FROM hackathon_stage_entries e WHERE e."submissionId" = s.id AND e."stageId" = ${filter.stageId} AND e."advancedAt" IS NOT NULL)`
+    case 'not_advanced':
+      return Prisma.sql`AND EXISTS (SELECT 1 FROM hackathon_stage_entries e WHERE e."submissionId" = s.id AND e."stageId" = ${filter.stageId} AND e."advancedAt" IS NULL)`
+    default: {
+      const _exhaustive: never = filter
+      return _exhaustive
+    }
+  }
+}
+
+/** Newest dens, paged in SQL. Open seats are teams under the hackathon size cap. */
+export async function listDens(hackathonId: string, opts: { page: number; pageSize?: number; trackId?: string; stageId?: string; standing: StandingFilter; openOnly: boolean; teamMax: number | null }) {
+  const pageSize = opts.pageSize ?? DENS_PAGE_SIZE
+  const trackSql = opts.trackId ? Prisma.sql`AND ${opts.trackId} = ANY(s."trackIds")` : Prisma.empty
+  const openSql = opts.openOnly && opts.teamMax != null
+    ? Prisma.sql`AND (SELECT COUNT(*) FROM project_members pm WHERE pm."projectId" = s."projectId" AND pm.role IN ('owner', 'writer')) < ${opts.teamMax}`
+    : Prisma.empty
+  const extra = standingSql(entryFilter(opts.stageId, opts.standing))
+  const skip = (opts.page - 1) * pageSize
+  const [ids, totalRows] = await Promise.all([
+    prisma.$queryRaw<{ id: string }[]>`
+      SELECT s.id FROM hackathon_submissions s
+      WHERE s."hackathonId" = ${hackathonId} AND s.status = 'active'
+      ${trackSql} ${openSql} ${extra}
+      ORDER BY s."createdAt" DESC, s.id DESC
+      OFFSET ${skip} LIMIT ${pageSize + 1}
+    `,
+    prisma.$queryRaw<{ n: number }[]>`
+      SELECT COUNT(*)::int AS n FROM hackathon_submissions s
+      WHERE s."hackathonId" = ${hackathonId} AND s.status = 'active'
+      ${trackSql} ${openSql} ${extra}
+    `,
+  ])
+  const pageIds = ids.slice(0, pageSize).map((r) => r.id)
+  const found = pageIds.length ? await prisma.submission.findMany({ where: { id: { in: pageIds } }, select: denSelect }) : []
+  const order = new Map(pageIds.map((id, i) => [id, i]))
+  found.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
+  return { rows: found, hasMore: ids.length > pageSize, total: Number(totalRows[0]?.n ?? 0) }
+}
+
+export async function listAround(hackathonId: string) {
+  return prisma.participant.findMany({
+    where: { hackathonId, status: 'active' },
+    orderBy: { createdAt: 'desc' },
+    take: 4,
+    select: {
+      user: {
+        select: {
+          name: true,
+          projectMembers: {
+            where: { role: { in: ['owner', 'writer'] } },
+            select: { project: { select: { members: { where: { role: { in: ['owner', 'writer'] } }, select: { id: true } } } } },
+          },
+        },
+      },
+    },
+  })
 }

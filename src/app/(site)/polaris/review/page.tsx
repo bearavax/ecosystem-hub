@@ -55,7 +55,7 @@ export default async function PolarisReviewPage({ searchParams }: { searchParams
   const pagerParams = { q: q.q, track: q.trackId, stage: q.stageId, standing: q.standing === 'any' ? undefined : q.standing, status: q.status === 'any' ? undefined : q.status }
 
   return (
-    <div className="container-page py-12">
+    <div>
       <PageHeader title="Polaris review" description={`${page.total} ${page.total === 1 ? 'submission' : 'submissions'} in this hackathon. ${POLARIS_PAGE_SIZE} per page, filtered in the database. This list is for organisers.`}>
         <Button asChild variant="outline"><Link href="/polaris">Polaris</Link></Button>
         <Button asChild variant="outline"><Link href={`/manage/hackathons/${h.id}/judging`}>Judging console</Link></Button>

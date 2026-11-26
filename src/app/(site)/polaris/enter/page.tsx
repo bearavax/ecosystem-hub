@@ -31,7 +31,7 @@ export default async function PolarisEnterPage({ searchParams }: { searchParams:
   ])
 
   return (
-    <div className="container-page max-w-3xl py-12">
+    <div className="max-w-3xl">
       <PageHeader title="Enter Polaris" description="Submit a Hub project to the open stage. An existing project and a new project are both stored as normal projects.">
         <Link href="/polaris" className="text-sm text-fg-muted underline-offset-2 hover:text-fg-heading hover:underline">Back to Polaris</Link>
       </PageHeader>
