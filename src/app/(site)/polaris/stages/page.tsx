@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { stageState } from '@/app/(site)/events/_lib/hackathons/rules'
 import { StageStateBadge } from '@/components/stage-state-badge'
 import { formatEventRange } from '@/lib/dates'
+import { POLARIS_PRIZES, POLARIS_RUBRIC } from '../_lib/process'
 import { formatPurse, stagePurse } from '../_lib/rules'
 import { loadPolarisContext } from '../_lib/queries'
 
@@ -17,11 +18,17 @@ export default async function StagesPage() {
   const pool = purses.reduce((sum, purse) => sum + purse.total, 0)
   const awards = purses.reduce((sum, purse) => sum + purse.awards, 0)
   return (
-    <div className="space-y-6 text-white">
+    <div className="space-y-6">
       <section>
-        <p className="max-w-3xl text-sm text-fg-muted">
-          ${pool.toLocaleString('en-US')} proposed across {awards} awards ({purses.map((purse) => `${formatPurse(purse.total).replace(' proposed', '')} ${purse.name}`).join(' · ')}). Every figure is proposed. Dates TBC. Seed windows are not announced dates.
-        </p>
+        <div className="max-w-3xl space-y-2 text-sm text-fg-body">
+          <p>${POLARIS_PRIZES.prizeTotal.toLocaleString('en-US')} proposed across {POLARIS_PRIZES.awards} awards. Saved prize rows add up to ${pool.toLocaleString('en-US')} proposed across {awards} awards ({purses.map((purse) => `${formatPurse(purse.total).replace(' proposed', '')} ${purse.name}`).join(' · ')}).</p>
+          <p>Stage 1 Hackathon: {POLARIS_PRIZES.stage1.places} × ${POLARIS_PRIZES.stage1.each.toLocaleString('en-US')} = ${POLARIS_PRIZES.stage1.total.toLocaleString('en-US')} proposed.</p>
+          <p>Stage 2 Accelerator: {POLARIS_PRIZES.stage2.places} × ${POLARIS_PRIZES.stage2.each.toLocaleString('en-US')} = ${POLARIS_PRIZES.stage2.total.toLocaleString('en-US')} proposed. Teams that were not advanced from Stage 1 can enter. Repeat winners are allowed.</p>
+          <p>Stage 3 Finale: 5 grand winners = ${POLARIS_PRIZES.stage3.total.toLocaleString('en-US')} proposed (${POLARIS_PRIZES.stage3.amounts.map((n) => `$${n.toLocaleString('en-US')}`).join(' / ')}). Only teams advanced from Stage 2.</p>
+          <p>${POLARIS_PRIZES.ops.toLocaleString('en-US')} proposed ops. This is operations money, not prize money, and it is not one of the {POLARIS_PRIZES.awards} awards.</p>
+          <p>Dates TBC. Six discovery tracks are for mentoring and discovery only. They are not separate prize pools. Judges TBC.</p>
+          <p>Rubric weights: {POLARIS_RUBRIC.map((c) => `${c.name} ${c.weight}`).join(', ')}.</p>
+        </div>
         <ol className="mt-6 grid gap-4">
           {h.stages.map((s, i) => {
             const prizes = h.prizes.filter((p) => p.title.toLowerCase().startsWith(s.name.toLowerCase()))
@@ -29,7 +36,7 @@ export default async function StagesPage() {
             return (
               <li key={s.id} className="rounded-xl border border-sky-300/15 bg-[#0F2137]/80 p-5 shadow-[inset_0_1px_0_rgba(186,230,253,0.18)] motion-safe:transition motion-safe:duration-300 motion-safe:hover:-translate-y-1">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-lg text-white"><Link href={`/polaris/stages?stage=${i}`} className="hover:text-sky-100">Stage {i + 1}: {s.name}</Link></h3>
+                  <h3 className="text-lg text-fg-heading"><Link href={`/polaris/stages?stage=${i}`} className="underline-offset-2 hover:underline">Stage {i + 1}: {s.name}</Link></h3>
                   <StageStateBadge state={stageState(s, now)} />
                 </div>
                 <p className="mt-2 text-sm text-fg-muted">Seed window {formatEventRange(s.opensAt, s.closesAt, h.timezone)}</p>

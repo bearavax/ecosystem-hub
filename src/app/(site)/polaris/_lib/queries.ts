@@ -109,8 +109,9 @@ const denSelect = {
   trackIds: true,
   project: {
     select: {
+      id: true,
       currentVersion: { select: { name: true } },
-      members: { where: { role: { in: ['owner', 'writer'] } }, select: { id: true } },
+      members: { where: { role: { in: ['owner', 'writer'] } }, select: { id: true, userId: true } },
     },
   },
   entries: { select: { stageId: true, advancedAt: true } },
@@ -169,6 +170,50 @@ export async function listDens(hackathonId: string, opts: { page: number; pageSi
 
 export function countDens(hackathonId: string) {
   return prisma.submission.count({ where: { hackathonId, status: 'active' } })
+}
+
+export async function polarisCounts(hackathonId: string, teamMax: number | null) {
+  const [teams, submissions, builders, openRows] = await Promise.all([
+    prisma.submission.count({ where: { hackathonId, status: 'active' } }),
+    prisma.stageEntry.count({ where: { submission: { hackathonId, status: 'active' } } }),
+    prisma.participant.count({ where: { hackathonId, status: 'active' } }),
+    teamMax == null
+      ? Promise.resolve([{ n: 0 }])
+      : prisma.$queryRaw<{ n: number }[]>`
+          SELECT COUNT(*)::int AS n FROM hackathon_submissions s
+          WHERE s."hackathonId" = ${hackathonId} AND s.status = 'active'
+          AND (SELECT COUNT(*) FROM project_members pm WHERE pm."projectId" = s."projectId" AND pm.role IN ('owner', 'writer')) < ${teamMax}
+        `,
+  ])
+  return { teams, submissions, builders, openSeats: Number(openRows[0]?.n ?? 0) }
+}
+
+export async function listJoinRequests(hackathonId: string, projectId: string) {
+  const people = await prisma.participant.findMany({
+    where: { hackathonId, status: 'active' },
+    select: { userId: true, answers: true, user: { select: { name: true, email: true } } },
+  })
+  return people.flatMap((person) => {
+    const answers = person.answers
+    const requests = answers && typeof answers === 'object' && !Array.isArray(answers) && Array.isArray((answers as { joinRequests?: unknown }).joinRequests)
+      ? (answers as { joinRequests: { projectId?: string }[] }).joinRequests
+      : []
+    return requests.some((r) => r.projectId === projectId) ? [{ userId: person.userId, name: person.user.name, email: person.user.email }] : []
+  })
+}
+
+export async function listOpenBuilders(hackathonId: string) {
+  const people = await prisma.participant.findMany({
+    where: { hackathonId, status: 'active' },
+    select: { userId: true, answers: true, user: { select: { name: true, bio: true, skills: true } } },
+  })
+  return people.flatMap((person) => {
+    const answers = person.answers
+    const open = answers && typeof answers === 'object' && !Array.isArray(answers) && (answers as { openToTeam?: unknown }).openToTeam === true
+    if (!open) return []
+    const timezone = (answers as { timezone?: unknown }).timezone
+    return [{ userId: person.userId, name: person.user.name, bio: person.user.bio, skills: person.user.skills, timezone: typeof timezone === 'string' ? timezone : '' }]
+  })
 }
 
 export async function listAround(hackathonId: string) {

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, type ReactNode } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { Home, List, Mountain, PawPrint, Send, Star, Tent, Users } from 'lucide-react'
+import { Home, List, Mountain, Send, Star, Tent, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { bindPins, setPolarisShot, type PolarisShot } from './camera-store'
 import { SvalbardBackdrop } from './svalbard-world'
@@ -89,10 +89,6 @@ export function PolarisExperience({ densTotal, children }: { densTotal: number; 
             </Link>
           </nav>
         </div>
-        <p className="pointer-events-none fixed bottom-16 left-5 z-20 hidden items-center gap-2 text-[11px] text-sky-100/70 md:flex">
-          <PawPrint className="size-3.5 text-amber-200" aria-hidden />
-          Polar Bears International · conservation motif, not a sponsor. Dates TBC.
-        </p>
       </div>
     </div>
   )

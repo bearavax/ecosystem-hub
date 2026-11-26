@@ -11,8 +11,8 @@ export default async function StarsPage() {
     : []
   return (
     <section>
-      <h2 className="text-2xl text-amber-100">Stars</h2>
-      <p className="mt-2 max-w-2xl text-sm text-fg-body">The Hub stores one <code className="text-fg-heading">resultsPublishedAt</code> flag for the whole hackathon, not a winners archive per stage. A per-stage archive would be a Polaris addition. This page only shows awards already on the hackathon.</p>
+      <h2 className="text-lg text-fg-heading">Winners</h2>
+      <p className="mt-2 max-w-2xl text-sm text-fg-body">Published winners for the whole hackathon. Dates TBC. Prize amounts are proposed.</p>
       {winners.length === 0 ? <p className="mt-6 text-sm text-fg-muted">No published winners.</p> : (
         <ul className="mt-6 grid gap-3 sm:grid-cols-2">
           {winners.map((w) => (

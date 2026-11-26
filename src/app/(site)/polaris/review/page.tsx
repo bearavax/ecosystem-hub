@@ -12,6 +12,7 @@ import { requireUser } from '@/lib/guards'
 import { POLARIS_PAGE_SIZE, POLARIS_SLUG, STANDING_FILTERS, STATUS_FILTERS, parseReviewQuery, standingsFor } from '../_lib/rules'
 import { countSharedMembers, listPolarisSubmissions } from '../_lib/queries'
 import { ReviewTable } from './review-bulk'
+import { ScoreForm, StageSwitch } from '../_components/wire-forms'
 
 export const metadata: Metadata = { title: 'Polaris review', robots: { index: false } }
 
@@ -89,7 +90,22 @@ export default async function PolarisReviewPage({ searchParams }: { searchParams
         </label>
         <div className="sm:col-span-2 lg:col-span-6"><Button type="submit" size="sm">Filter</Button></div>
       </form>
-      <p className="mb-3 text-sm text-fg-muted">Page {q.page}. {page.total} {page.total === 1 ? 'match' : 'matches'}. Standing filters need a stage. Advance is available after that stage’s judging is closed and a later stage exists.</p>
+      <section className="mb-6 rounded-md border border-line p-4">
+        <h2 className="text-lg text-fg-heading">Switch the open stage</h2>
+        <p className="mt-1 text-sm text-fg-body">This rewrites the three stage windows on the existing rows. Earlier stages close, the chosen stage opens, later stages stay upcoming. Dates TBC. Use it to walk Stage 1, then Stage 2, then Stage 3.</p>
+        <div className="mt-3"><StageSwitch hackathonId={h.id} /></div>
+      </section>
+      <p className="mb-3 text-sm text-fg-muted">Page {q.page}. {page.total} {page.total === 1 ? 'match' : 'matches'}. Standing filters need a stage. Advance is available after that stage’s judging is closed and a later stage exists. Scores use this stage’s criteria, 0 to 10, and are stored as a normal review.</p>
+      {stage && stage.criteria.length > 0 && (
+        <ul className="mb-6 space-y-3">
+          {rows.filter((row) => row.entryId).map((row) => (
+            <li key={row.entryId} className="rounded-md border border-line p-3">
+              <p className="text-sm text-fg-heading">{row.name}</p>
+              <ScoreForm hackathonId={h.id} entryId={row.entryId!} criteria={stage.criteria.map((c) => ({ id: c.id, name: c.name, weight: c.weight }))} />
+            </li>
+          ))}
+        </ul>
+      )}
       <ReviewTable hackathonId={h.id} stageId={stage?.id ?? null} stageName={stage?.name ?? null} canAdvance={canAdvance} stageHeaders={h.stages.map((s) => ({ id: s.id, name: s.name }))} rows={rows} />
       <Pager page={q.page} hasMore={page.hasMore} params={pagerParams} />
     </div>

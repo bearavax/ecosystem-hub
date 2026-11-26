@@ -1,9 +1,9 @@
 # Polaris
 
-A plain tab over the hackathon models. It is not a second store: submissions, stages, scores and awards are the Hub rows documented in `src/app/(site)/events/AGENTS.md`.
+A plain wireframe over the existing hackathon models. It does not add tables. Submissions, stages, scores, invites, and members are the Hub rows in `src/app/(site)/events/AGENTS.md` and `src/app/(app)/projects`.
 
-- `/polaris` is the command hub (sidebar: Live, My Den, Submit, Stages, Lodge, Stars, Review). `/polaris/enter` and `/polaris/review` stay real routes inside that shell. `/events/polaris` redirects to `/polaris`. Other hackathons keep `HackathonView`.
-- Enter reuses `submitToStage`. Review reuses `setAdvanced` and `getManagedHackathon` (same guard and data terms as `/manage`).
-- Pure standing and filter rules live in `_lib/rules.ts` and `tests/polaris.test.ts`.
-- Local fake data: `pnpm seed:polaris`. Do not point it at a shared database.
-- One sponsor string per track is the existing column. Do not add a sponsors table here.
+- Routes: `/polaris` overview, `/polaris/dens` teams, `/polaris/lodge` teammates, `/polaris/stages` rules, `/polaris/den` my team, `/polaris/enter` seal a submission, `/polaris/review` organiser queue. `/events/polaris` redirects to `/polaris`.
+- Seat requests live in `Participant.answers`. Invites are `ProjectInvite`. Scores are `Review`. Switching the open stage updates the three `HackathonStage` windows.
+- Pure rules: `_lib/process.ts`, `_lib/rules.ts`. Tests: `tests/polaris.test.ts`, `tests/polaris-process.test.ts`.
+- Local fake data: `pnpm seed:polaris`. Walkthrough: `docs/polaris/POLARIS_PROCESS_TEST_GUIDE.md`.
+- 3D files under `_components` are not mounted by these routes.

@@ -15,20 +15,18 @@ const TRACKS = [
   { id: 'polaris_track_lifestyle', name: 'Lifestyle & Real-World', sponsor: 'Sponsor E', order: 4 },
   { id: 'polaris_track_open', name: 'Open Innovation', sponsor: 'Sponsor F', order: 5 },
 ] as const
-const S1 = [
-  { id: 'polaris_c_clarity', name: 'Clarity', weight: 1, description: 'FAKE. Is the idea understandable?', order: 0 },
-  { id: 'polaris_c_build', name: 'Build', weight: 3, description: 'FAKE. Did they build something?', order: 1 },
-  { id: 'polaris_c_demo', name: 'Demo', weight: 2, description: 'FAKE. Is there something to open?', order: 2 },
-]
-const S2 = [
-  { id: 'polaris_c_progress', name: 'Progress', weight: 2, description: 'FAKE. What moved since the hackathon?', order: 0 },
-  { id: 'polaris_c_users', name: 'Users', weight: 2, description: 'FAKE. Any real usage?', order: 1 },
-  { id: 'polaris_c_plan', name: 'Plan', weight: 1, description: 'FAKE. What happens next?', order: 2 },
-]
-const S3 = [
-  { id: 'polaris_c_product', name: 'Product', weight: 3, description: 'FAKE. Is it a product?', order: 0 },
-  { id: 'polaris_c_pitch', name: 'Pitch', weight: 2, description: 'FAKE. Can they explain it?', order: 1 },
-]
+function rubric(prefix: string) {
+  return [
+    { id: `${prefix}_problem`, name: 'Problem', weight: 30, description: 'Proposed weight 30.', order: 0 },
+    { id: `${prefix}_solution`, name: 'Solution', weight: 25, description: 'Proposed weight 25.', order: 1 },
+    { id: `${prefix}_build`, name: 'Build', weight: 20, description: 'Proposed weight 20.', order: 2 },
+    { id: `${prefix}_demo`, name: 'Demo', weight: 15, description: 'Proposed weight 15.', order: 3 },
+    { id: `${prefix}_team`, name: 'Team', weight: 10, description: 'Proposed weight 10.', order: 4 },
+  ]
+}
+const S1 = rubric('polaris_s1')
+const S2 = rubric('polaris_s2')
+const S3 = rubric('polaris_s3')
 
 function assertLocalDatabase() {
   const url = process.env.DATABASE_URL ?? ''
@@ -144,7 +142,7 @@ async function main() {
           teamSizeMax: 5,
           allowMultipleSubmissions: false,
           requireApproval: false,
-          prizePool: '$95,000 proposed',
+          prizePool: '$200,000 proposed',
           timezone: 'UTC',
           status: 'published',
           resultsPublishedAt: at('2026-11-01T00:00:00Z'),
@@ -298,9 +296,9 @@ async function main() {
   await prisma.stageEntry.createMany({ data: entries })
 
   const scorecard: Record<string, Record<string, number>> = {
-    star: { polaris_c_clarity: 9, polaris_c_build: 9, polaris_c_demo: 8 },
-    north: { polaris_c_clarity: 7, polaris_c_build: 7, polaris_c_demo: 6 },
-    south: { polaris_c_clarity: 4, polaris_c_build: 3, polaris_c_demo: 5 },
+    star: { polaris_s1_problem: 9, polaris_s1_solution: 9, polaris_s1_build: 8, polaris_s1_demo: 8, polaris_s1_team: 9 },
+    north: { polaris_s1_problem: 7, polaris_s1_solution: 7, polaris_s1_build: 6, polaris_s1_demo: 6, polaris_s1_team: 7 },
+    south: { polaris_s1_problem: 4, polaris_s1_solution: 4, polaris_s1_build: 3, polaris_s1_demo: 5, polaris_s1_team: 4 },
   }
   for (const [judgeKey, delta] of [['polaris_j1', 0], ['polaris_j2', -1]] as const) {
     for (const key of ['star', 'north', 'south'] as const) {
