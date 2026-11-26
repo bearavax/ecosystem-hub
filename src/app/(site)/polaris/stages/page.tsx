@@ -13,9 +13,14 @@ export default async function StagesPage() {
   const { h } = ctx
   return (
     <div className="space-y-12">
+      <div className="relative h-36 overflow-hidden rounded-xl border border-sky-400/25">
+        {/* eslint-disable-next-line @next/next/no-img-element -- local polaris still */}
+        <img src="/polaris/premium-3-sky.jpg" alt="" className="h-full w-full object-cover object-[center_30%]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0B0A0F] via-[#0B0A0F]/55 to-[#0B0A0F]/20" />
+        <h2 className="absolute bottom-3 left-4 text-xl text-white">Mountains</h2>
+      </div>
       <section>
-        <h2 className="text-xl text-fg-heading">Mountains</h2>
-        <p className="mt-2 max-w-2xl text-sm text-fg-muted">Three stages. Prize text is proposed. Seed windows are not announced dates. Prize pool {h.prizePool}.</p>
+        <p className="max-w-2xl text-sm text-fg-muted">Three stages. Prize text is proposed. Seed windows are not announced dates. Prize pool {h.prizePool}.</p>
         <ol className="mt-6 grid gap-4">
           {h.stages.map((s, i) => {
             const prizes = h.prizes.filter((p) => p.title.toLowerCase().startsWith(s.name.toLowerCase()))

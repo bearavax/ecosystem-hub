@@ -32,7 +32,12 @@ export default async function LodgePage({ searchParams }: { searchParams: Promis
   }
   return (
     <section>
-      <h2 className="text-xl text-fg-heading">Lodge</h2>
+      <div className="relative mb-4 h-28 overflow-hidden rounded-xl border border-sky-400/25">
+        {/* eslint-disable-next-line @next/next/no-img-element -- local polaris still */}
+        <img src="/polaris/premium-2-overview.jpg" alt="" className="h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0B0A0F]/85 to-[#0B0A0F]/30" />
+        <h2 className="absolute bottom-3 left-4 text-xl text-white">Lodge</h2>
+      </div>
       <p className="mt-2 max-w-2xl text-sm text-fg-muted">Dens with an open seat: the writing team is under the size cap ({ctx.h.teamSizeMax ?? 'no cap'}). Open to team is that same signal. {dens.total} dens.</p>
       <div className="mt-4 flex flex-wrap gap-2 text-sm">
         <Link href={q({ track: undefined })} className={!trackId ? 'rounded-full bg-info/15 px-3 py-1 text-fg-heading' : 'rounded-full border border-line px-3 py-1 text-fg-muted'}>All tracks</Link>
