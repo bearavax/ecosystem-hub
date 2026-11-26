@@ -8,8 +8,8 @@ export default async function PolarisLayout({ children }: { children: ReactNode 
   const ctx = await loadPolarisContext()
   if (!ctx) return <div className="container-page py-12">{children}</div>
   return (
-    <div className="relative bg-[linear-gradient(180deg,#060E1B_0%,#0B192C_100%)]">
-      <div className="pointer-events-none sticky top-16 z-0 -mb-[calc(100dvh-4rem)] h-[calc(100dvh-4rem)]">
+    <div className="relative bg-[#060E1B]">
+      <div className="pointer-events-none fixed inset-x-0 top-16 z-0 h-[calc(100dvh-4rem)] [mask-image:linear-gradient(to_bottom,black_55%,transparent_100%)]">
         <SvalbardBackdrop />
       </div>
       <div className="relative z-10">
